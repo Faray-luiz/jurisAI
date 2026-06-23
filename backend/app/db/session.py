@@ -7,6 +7,8 @@ from backend.app.core.config import settings
 import os
 
 DATABASE_URL = settings.DATABASE_URL
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # Thread-safe connection for SQLite in FastAPI
 is_sqlite = DATABASE_URL.startswith("sqlite")
