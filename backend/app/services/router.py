@@ -92,7 +92,7 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
         if provider == "anthropic":
             import anthropic
             client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-            model_id = "claude-3-5-sonnet-20241022" if model == "claude-3-5-sonnet" else model
+            model_id = "claude-sonnet-4-6" if model in ["claude-3-5-sonnet", "claude-3-5-sonnet-latest", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet-20240620"] else model
             message = client.messages.create(
                 model=model_id,
                 max_tokens=2048,
