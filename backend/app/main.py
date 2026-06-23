@@ -429,3 +429,61 @@ def get_admin_metrics(user: dict = Depends(get_current_user)):
     finally:
         db.close()
 
+@app.get("/api/v1/admin/provider-status")
+def get_provider_status(user: dict = Depends(get_current_user)):
+    if user["role"] not in ["Sócio"]:
+        raise HTTPException(status_code=403, detail="Apenas Sócios podem auditar chaves de API.")
+    
+    status = {}
+    
+    # OpenAI
+    is_openai_mock = settings.OPENAI_API_KEY == "mock-openai-key" or not settings.OPENAI_API_KEY
+    if is_openai_mock:
+        status["openai"] = {"status": "simulado", "message": "Usando simulação ('mock-openai-key')"}
+    else:
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            client.chat.completions.create(
+                model="gpt-4o-mini",
+                max_tokens=1,
+                messages=[{"role": "user", "content": "ping"}]
+            )
+            status["openai"] = {"status": "ativo", "message": "Conexão ativa e modelo gpt-4o-mini disponível"}
+        except Exception as e:
+            status["openai"] = {"status": "erro", "message": f"Falha na API: {str(e)}"}
+            
+    # Anthropic
+    is_anthropic_mock = settings.ANTHROPIC_API_KEY == "mock-anthropic-key" or not settings.ANTHROPIC_API_KEY
+    if is_anthropic_mock:
+        status["anthropic"] = {"status": "simulado", "message": "Usando simulação ('mock-anthropic-key')"}
+    else:
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+            client.messages.create(
+                model="claude-3-5-sonnet",
+                max_tokens=1,
+                messages=[{"role": "user", "content": "ping"}]
+            )
+            status["anthropic"] = {"status": "ativo", "message": "Conexão ativa e modelo claude-3-5-sonnet disponível"}
+        except Exception as e:
+            status["anthropic"] = {"status": "erro", "message": f"Falha na API: {str(e)}"}
+            
+    # Google (Gemini)
+    is_gemini_mock = settings.GEMINI_API_KEY == "mock-gemini-key" or not settings.GEMINI_API_KEY
+    if is_gemini_mock:
+        status["google"] = {"status": "simulado", "message": "Usando simulação ('mock-gemini-key')"}
+    else:
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=settings.GEMINI_API_KEY)
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            model.generate_content("ping")
+            status["google"] = {"status": "ativo", "message": "Conexão ativa e modelo gemini-1.5-flash disponível"}
+        except Exception as e:
+            status["google"] = {"status": "erro", "message": f"Falha na API: {str(e)}"}
+            
+    return status
+
+

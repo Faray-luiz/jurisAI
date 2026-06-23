@@ -98,6 +98,9 @@ export default function Home() {
     user_count: 0
   });
 
+  const [providerStatuses, setProviderStatuses] = useState<any>(null);
+  const [loadingStatuses, setLoadingStatuses] = useState<boolean>(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch initial configuration & active user profile
@@ -251,6 +254,22 @@ export default function Home() {
     }
   };
 
+  const fetchProviderStatuses = async (email: string) => {
+    setLoadingStatuses(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/v1/admin/provider-status`, {
+        headers: { "Authorization": `Bearer ${email}` }
+      });
+      if (res.ok) {
+        setProviderStatuses(await res.json());
+      }
+    } catch (err) {
+      console.error("Error fetching provider statuses:", err);
+    } finally {
+      setLoadingStatuses(false);
+    }
+  };
+
   // Triggered when switching active tab
   useEffect(() => {
     if (activeTab === "auditoria" && currentUser) {
@@ -258,6 +277,9 @@ export default function Home() {
       fetchAgentConfigs(currentUser.email);
       fetchGroundingDocs(currentUser.email);
       fetchAdminMetrics(currentUser.email);
+      if (currentUser.role === "Sócio") {
+        fetchProviderStatuses(currentUser.email);
+      }
     }
   }, [activeTab]);
 
@@ -1298,6 +1320,65 @@ export default function Home() {
                 {adminSubTab === "modelos" && (
                   <div>
                     <h3 className="text-section" style={{ fontSize: "17px", marginBottom: "16px" }}>Roteamento de Modelos & Instruções de System Prompt</h3>
+                    
+                    {currentUser?.role === "Sócio" && (
+                      <div style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                        gap: "16px",
+                        marginBottom: "24px",
+                        background: "rgba(100, 100, 100, 0.03)",
+                        border: "1px solid var(--line)",
+                        padding: "16px",
+                        borderRadius: "10px"
+                      }}>
+                        {[
+                          { key: "openai", name: "OpenAI" },
+                          { key: "anthropic", name: "Anthropic" },
+                          { key: "google", name: "Google (Gemini)" }
+                        ].map(prov => {
+                          const info = providerStatuses?.[prov.key];
+                          const isActive = info?.status === "ativo";
+                          const isError = info?.status === "erro";
+                          
+                          return (
+                            <div key={prov.key} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                              <div style={{ display: "flex", alignItems: "center" }}>
+                                <span style={{ fontSize: "10px", fontWeight: 600, color: "var(--ink-faint)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                  {prov.name}
+                                </span>
+                                {loadingStatuses && <span style={{ fontSize: "9px", color: "var(--ink-faint)", marginLeft: "auto" }}>Verificando...</span>}
+                              </div>
+                              
+                              {!loadingStatuses && (
+                                <>
+                                  <div>
+                                    <span style={{
+                                      display: "inline-block",
+                                      padding: "3px 8px",
+                                      borderRadius: "6px",
+                                      fontSize: "10px",
+                                      fontWeight: 600,
+                                      background: isActive ? "rgba(40, 167, 69, 0.08)" : isError ? "rgba(122, 46, 46, 0.08)" : "rgba(100, 100, 100, 0.08)",
+                                      color: isActive ? "#28a745" : isError ? "var(--bordo)" : "var(--ink-soft)",
+                                      border: "1px solid " + (isActive ? "rgba(40, 167, 69, 0.2)" : isError ? "rgba(122, 46, 46, 0.2)" : "rgba(100, 100, 100, 0.2)")
+                                    }}>
+                                      {isActive ? "✓ Conectado" : isError ? "✗ Erro de API" : "⚙ Simulado"}
+                                    </span>
+                                  </div>
+                                  <span style={{ fontSize: "10px", color: "var(--ink-faint)", lineHeight: "1.3" }}>
+                                    {info?.message || "Carregando status..."}
+                                  </span>
+                                </>
+                              )}
+                              {loadingStatuses && (
+                                <div style={{ fontSize: "11px", color: "var(--ink-soft)" }}>Consultando API...</div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                     
                     <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "20px", marginBottom: "30px" }}>
                       <label className="text-label" style={{ display: "block", marginBottom: "8px" }}>Selecione o Agente/Missão para configurar:</label>
