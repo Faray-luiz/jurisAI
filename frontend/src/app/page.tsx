@@ -74,8 +74,10 @@ export default function Home() {
     key: "",
     citation: "",
     text: "",
-    source: ""
+    source: "",
+    agent_task_type: "global"
   });
+  const [ragMissionFilter, setRagMissionFilter] = useState<string>("all");
   const [ragPdfFile, setRagPdfFile] = useState<File | null>(null);
   const [ragSaving, setRagSaving] = useState(false);
 
@@ -773,13 +775,14 @@ export default function Home() {
           key: key,
           citation: ragDocForm.citation,
           text: ragDocForm.text,
-          source: ragDocForm.source
+          source: ragDocForm.source,
+          agent_task_type: ragDocForm.agent_task_type || "global"
         })
       });
       const data = await res.json();
       if (res.ok) {
         showToast(data.message);
-        setRagDocForm({ key: "", citation: "", text: "", source: "" });
+        setRagDocForm({ key: "", citation: "", text: "", source: "", agent_task_type: "global" });
         fetchGroundingDocs(currentUser.email);
       } else {
         showToast(`Erro: ${data.detail}`);
@@ -802,6 +805,7 @@ export default function Home() {
       const formData = new FormData();
       formData.append("citation", ragDocForm.citation);
       formData.append("source", ragDocForm.source);
+      formData.append("agent_task_type", ragDocForm.agent_task_type || "global");
       formData.append("file", ragPdfFile);
       
       const res = await fetch(`${BACKEND_URL}/api/v1/admin/grounding-docs/upload-pdf`, {
@@ -815,7 +819,7 @@ export default function Home() {
       if (res.ok) {
         showToast(data.message);
         setRagPdfFile(null);
-        setRagDocForm({ key: "", citation: "", text: "", source: "" });
+        setRagDocForm({ key: "", citation: "", text: "", source: "", agent_task_type: "global" });
         const fileEl = document.getElementById("rag-pdf-input") as HTMLInputElement;
         if (fileEl) fileEl.value = "";
         fetchGroundingDocs(currentUser.email);
@@ -1688,168 +1692,279 @@ export default function Home() {
                   </div>
                 )}
 
-                {adminSubTab === "rag" && (
-                  <div>
-                    <h3 className="text-section" style={{ fontSize: "17px", marginBottom: "16px" }}>Base de Legislação Jurídica de Suporte (RAG / Grounding Corpus)</h3>
-                    
-                    <div style={{ display: "flex", gap: "20px", marginBottom: "30px" }}>
-                      {/* Upload / Ingestion Form */}
-                      <div style={{ flex: 1.2, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "20px" }}>
-                        <h4 style={{ fontSize: "14px", fontWeight: 600, color: "var(--bordo)", marginBottom: "14px" }}>Cadastrar Novo Documento / Lei</h4>
-                        
-                        <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
-                          <button
-                            type="button"
-                            onClick={() => setRagPdfFile(null)}
-                            style={{
-                              background: !ragPdfFile ? "var(--paper-2)" : "transparent",
-                              border: "1px solid var(--line)",
-                              borderRadius: "6px",
-                              fontSize: "11.5px",
-                              fontWeight: 600,
-                              padding: "4px 10px",
-                              cursor: "pointer"
-                            }}
-                          >
-                            Digitar Texto
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setRagPdfFile(new File([], ""))}
-                            style={{
-                              background: ragPdfFile ? "var(--paper-2)" : "transparent",
-                              border: "1px solid var(--line)",
-                              borderRadius: "6px",
-                              fontSize: "11.5px",
-                              fontWeight: 600,
-                              padding: "4px 10px",
-                              cursor: "pointer"
-                            }}
-                          >
-                            Carregar PDF Oficial
-                          </button>
+                {adminSubTab === "rag" && (() => {
+                  // Mission label helpers
+                  const MISSION_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+                    global:            { label: "Global (Todos)",         color: "#4a6fa5", bg: "rgba(74,111,165,0.1)"  },
+                    analise_peticao:   { label: "Análise de Petição",     color: "#8b0000", bg: "rgba(139,0,0,0.09)"   },
+                    rascunho_recurso:  { label: "Rascunho de Recurso",    color: "#2d6a4f", bg: "rgba(45,106,79,0.1)"  },
+                  };
+                  const getMissionChip = (type: string) => {
+                    const m = MISSION_LABELS[type] || { label: type, color: "#666", bg: "rgba(0,0,0,0.06)" };
+                    return (
+                      <span style={{
+                        display: "inline-block",
+                        padding: "2px 8px",
+                        borderRadius: "20px",
+                        fontSize: "10.5px",
+                        fontWeight: 700,
+                        letterSpacing: "0.02em",
+                        color: m.color,
+                        background: m.bg,
+                        border: `1px solid ${m.color}30`,
+                        whiteSpace: "nowrap"
+                      }}>
+                        {m.label}
+                      </span>
+                    );
+                  };
+
+                  const MissionSelect = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+                    <div>
+                      <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px", fontWeight: 700 }}>
+                        Missão / Agente Associado
+                      </label>
+                      <select
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        style={{
+                          width: "100%", padding: "8px 10px", borderRadius: "6px",
+                          border: "1px solid var(--line)", fontSize: "12.5px",
+                          background: "#fff", cursor: "pointer", fontFamily: "inherit"
+                        }}
+                      >
+                        <option value="global">🌐 Global (disponível para todos os agentes)</option>
+                        <option value="analise_peticao">⚖️ Análise de Petição</option>
+                        <option value="rascunho_recurso">📝 Rascunho de Recurso</option>
+                      </select>
+                      <span style={{ fontSize: "10px", color: "var(--ink-faint)", display: "block", marginTop: "4px", lineHeight: "1.4" }}>
+                        Documentos globais ficam disponíveis para todos os agentes. Documentos de missão específica são injetados apenas quando aquele agente está ativo.
+                      </span>
+                    </div>
+                  );
+
+                  const filteredDocs = ragMissionFilter === "all"
+                    ? groundingDocs
+                    : groundingDocs.filter((d: any) => (d.agent_task_type || "global") === ragMissionFilter);
+
+                  return (
+                    <div>
+                      {/* Header + Stats */}
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
+                        <div>
+                          <h3 className="text-section" style={{ fontSize: "17px", marginBottom: "4px" }}>Base de Conhecimento Jurídico (RAG)</h3>
+                          <p style={{ fontSize: "12px", color: "var(--ink-faint)", margin: 0 }}>
+                            Documentos são selecionados semanticamente por missão ativa — apenas os mais relevantes são injetados no contexto da IA.
+                          </p>
+                        </div>
+                        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                          {Object.entries(MISSION_LABELS).map(([key, val]) => (
+                            <span key={key} style={{ fontSize: "11px", color: val.color, fontWeight: 700 }}>
+                              {groundingDocs.filter((d: any) => (d.agent_task_type || "global") === key).length} {key === "global" ? "globais" : key === "analise_peticao" ? "petição" : "recurso"}
+                            </span>
+                          ))}
+                          <span style={{ fontSize: "11px", color: "var(--ink-faint)" }}>({groundingDocs.length} total)</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", gap: "20px", marginBottom: "30px", alignItems: "flex-start" }}>
+                        {/* Upload / Ingestion Form */}
+                        <div style={{ flex: "0 0 320px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "20px" }}>
+                          <h4 style={{ fontSize: "14px", fontWeight: 600, color: "var(--bordo)", marginBottom: "14px" }}>
+                            Cadastrar Novo Documento
+                          </h4>
+
+                          <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+                            <button
+                              type="button"
+                              onClick={() => setRagPdfFile(null)}
+                              style={{
+                                flex: 1, background: !ragPdfFile ? "var(--bordo)" : "transparent",
+                                color: !ragPdfFile ? "#fff" : "var(--ink)",
+                                border: "1px solid var(--line)", borderRadius: "6px",
+                                fontSize: "11.5px", fontWeight: 600, padding: "6px 10px", cursor: "pointer"
+                              }}
+                            >
+                              ✏️ Digitar Texto
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setRagPdfFile(new File([], ""))}
+                              style={{
+                                flex: 1, background: ragPdfFile ? "var(--bordo)" : "transparent",
+                                color: ragPdfFile ? "#fff" : "var(--ink)",
+                                border: "1px solid var(--line)", borderRadius: "6px",
+                                fontSize: "11.5px", fontWeight: 600, padding: "6px 10px", cursor: "pointer"
+                              }}
+                            >
+                              📄 Carregar PDF
+                            </button>
+                          </div>
+
+                          {!ragPdfFile ? (
+                            <form onSubmit={handleSaveGroundingDoc} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                              <div>
+                                <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Citação Oficial</label>
+                                <input
+                                  type="text"
+                                  value={ragDocForm.citation}
+                                  onChange={(e) => setRagDocForm(prev => ({ ...prev, citation: e.target.value }))}
+                                  placeholder="Art. 186 do Código Civil"
+                                  style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px" }}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Fonte Oficial</label>
+                                <input
+                                  type="text"
+                                  value={ragDocForm.source}
+                                  onChange={(e) => setRagDocForm(prev => ({ ...prev, source: e.target.value }))}
+                                  placeholder="LexML - Código Civil"
+                                  style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px" }}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Chave Interna (opcional)</label>
+                                <input
+                                  type="text"
+                                  value={ragDocForm.key}
+                                  onChange={(e) => setRagDocForm(prev => ({ ...prev, key: e.target.value }))}
+                                  placeholder="Deixe em branco para autogerar"
+                                  style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px" }}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Texto Integral do Artigo</label>
+                                <textarea
+                                  rows={4}
+                                  value={ragDocForm.text}
+                                  onChange={(e) => setRagDocForm(prev => ({ ...prev, text: e.target.value }))}
+                                  placeholder="Cole o teor completo do artigo de lei aqui..."
+                                  style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px", fontFamily: "inherit" }}
+                                />
+                              </div>
+                              <MissionSelect
+                                value={ragDocForm.agent_task_type}
+                                onChange={(v) => setRagDocForm(prev => ({ ...prev, agent_task_type: v }))}
+                              />
+                              <button type="submit" className="btn" disabled={ragSaving} style={{ padding: "8px 16px", alignSelf: "flex-end" }}>
+                                {ragSaving ? <Loader2 size={13} className="spin" /> : "Gravar Citação"}
+                              </button>
+                            </form>
+                          ) : (
+                            <form onSubmit={handleUploadRagPdf} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                              <div>
+                                <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Citação Oficial (Ex: Lei 13.709/18 - LGPD)</label>
+                                <input
+                                  type="text"
+                                  value={ragDocForm.citation}
+                                  onChange={(e) => setRagDocForm(prev => ({ ...prev, citation: e.target.value }))}
+                                  placeholder="Lei 13.709/18 - LGPD"
+                                  style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px" }}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Fonte Oficial</label>
+                                <input
+                                  type="text"
+                                  value={ragDocForm.source}
+                                  onChange={(e) => setRagDocForm(prev => ({ ...prev, source: e.target.value }))}
+                                  placeholder="LexML - Planalto"
+                                  style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px" }}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Arquivo PDF do Diário Oficial</label>
+                                <input
+                                  type="file"
+                                  id="rag-pdf-input"
+                                  accept=".pdf"
+                                  onChange={(e) => setRagPdfFile(e.target.files?.[0] || null)}
+                                  style={{ width: "100%", fontSize: "12.5px" }}
+                                />
+                              </div>
+                              <MissionSelect
+                                value={ragDocForm.agent_task_type}
+                                onChange={(v) => setRagDocForm(prev => ({ ...prev, agent_task_type: v }))}
+                              />
+                              <button type="submit" className="btn" disabled={ragSaving || !ragPdfFile?.name} style={{ padding: "8px 16px", alignSelf: "flex-end" }}>
+                                {ragSaving ? <Loader2 size={13} className="spin" /> : "Extrair & Ingerir RAG"}
+                              </button>
+                            </form>
+                          )}
                         </div>
 
-                        {!ragPdfFile ? (
-                          <form onSubmit={handleSaveGroundingDoc} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                            <div>
-                              <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Citação (Ex: Art. 186 do Código Civil)</label>
-                              <input
-                                type="text"
-                                value={ragDocForm.citation}
-                                onChange={(e) => setRagDocForm(prev => ({ ...prev, citation: e.target.value }))}
-                                placeholder="Art. 186 do Código Civil"
-                                style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px" }}
-                              />
-                            </div>
-                            <div>
-                              <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Fonte Oficial (Ex: LexML - Código Civil)</label>
-                              <input
-                                type="text"
-                                value={ragDocForm.source}
-                                onChange={(e) => setRagDocForm(prev => ({ ...prev, source: e.target.value }))}
-                                placeholder="LexML - Código Civil"
-                                style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px" }}
-                              />
-                            </div>
-                            <div>
-                              <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Chave Interna Opcional (Ex: art 186 cc)</label>
-                              <input
-                                type="text"
-                                value={ragDocForm.key}
-                                onChange={(e) => setRagDocForm(prev => ({ ...prev, key: e.target.value }))}
-                                placeholder="Deixe em branco para autogerar"
-                                style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px" }}
-                              />
-                            </div>
-                            <div>
-                              <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Texto Integral do Artigo</label>
-                              <textarea
-                                rows={4}
-                                value={ragDocForm.text}
-                                onChange={(e) => setRagDocForm(prev => ({ ...prev, text: e.target.value }))}
-                                placeholder="Cole o teor completo do artigo de lei aqui..."
-                                style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px", fontFamily: "inherit" }}
-                              />
-                            </div>
-                            <button type="submit" className="btn" disabled={ragSaving} style={{ padding: "8px 16px", alignSelf: "flex-end" }}>
-                              {ragSaving ? <Loader2 size={13} className="spin" /> : "Gravar Citação"}
-                            </button>
-                          </form>
-                        ) : (
-                          <form onSubmit={handleUploadRagPdf} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                            <div>
-                              <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Citação Oficial a indexar (Ex: Lei 13.709/18 - LGPD)</label>
-                              <input
-                                type="text"
-                                value={ragDocForm.citation}
-                                onChange={(e) => setRagDocForm(prev => ({ ...prev, citation: e.target.value }))}
-                                placeholder="Lei 13.709/18 - LGPD"
-                                style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px" }}
-                              />
-                            </div>
-                            <div>
-                              <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Fonte Oficial (Ex: LexML - Planalto)</label>
-                              <input
-                                type="text"
-                                value={ragDocForm.source}
-                                onChange={(e) => setRagDocForm(prev => ({ ...prev, source: e.target.value }))}
-                                placeholder="LexML - Planalto"
-                                style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px" }}
-                              />
-                            </div>
-                            <div>
-                              <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Arquivo PDF do Diário Oficial</label>
-                              <input
-                                type="file"
-                                id="rag-pdf-input"
-                                accept=".pdf"
-                                onChange={(e) => setRagPdfFile(e.target.files?.[0] || null)}
-                                style={{ width: "100%", fontSize: "12.5px" }}
-                              />
-                            </div>
-                            <button type="submit" className="btn" disabled={ragSaving || !ragPdfFile?.name} style={{ padding: "8px 16px", alignSelf: "flex-end" }}>
-                              {ragSaving ? <Loader2 size={13} className="spin" /> : "Extrair & Ingerir RAG"}
-                            </button>
-                          </form>
-                        )}
-                      </div>
-
-                      {/* Grounding list */}
-                      <div style={{ flex: 1.8 }}>
-                        <table className="admin-table" style={{ fontSize: "12px" }}>
-                          <thead>
-                            <tr>
-                              <th>Citação</th>
-                              <th>Fonte</th>
-                              <th>Status</th>
-                              <th>Ações</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {groundingDocs.map((doc) => (
-                              <tr key={doc.id}>
-                                <td><strong>{doc.citation}</strong></td>
-                                <td>{doc.source}</td>
-                                <td>
-                                  <span style={{ color: "var(--verde)", fontWeight: 600 }}>Ativo</span>
-                                </td>
-                                <td>
-                                  <button
-                                    onClick={() => handleDeleteGroundingDoc(doc.id)}
-                                    style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--bordo)", fontSize: "11px", fontWeight: 600 }}
-                                  >
-                                    Excluir
-                                  </button>
-                                </td>
-                              </tr>
+                        {/* Grounding list */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          {/* Filter Bar */}
+                          <div style={{ display: "flex", gap: "8px", marginBottom: "12px", alignItems: "center", flexWrap: "wrap" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--ink-faint)", marginRight: "4px" }}>FILTRAR:</span>
+                            {[
+                              { key: "all", label: "Todos" },
+                              { key: "global", label: "🌐 Global" },
+                              { key: "analise_peticao", label: "⚖️ Análise de Petição" },
+                              { key: "rascunho_recurso", label: "📝 Rascunho de Recurso" },
+                            ].map(opt => (
+                              <button
+                                key={opt.key}
+                                onClick={() => setRagMissionFilter(opt.key)}
+                                style={{
+                                  padding: "4px 10px",
+                                  borderRadius: "20px",
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  cursor: "pointer",
+                                  border: ragMissionFilter === opt.key ? "1.5px solid var(--bordo)" : "1px solid var(--line)",
+                                  background: ragMissionFilter === opt.key ? "rgba(139,0,0,0.08)" : "transparent",
+                                  color: ragMissionFilter === opt.key ? "var(--bordo)" : "var(--ink-faint)",
+                                  transition: "all 0.15s"
+                                }}
+                              >
+                                {opt.label}
+                              </button>
                             ))}
-                          </tbody>
-                        </table>
+                          </div>
+
+                          <table className="admin-table" style={{ fontSize: "12px" }}>
+                            <thead>
+                              <tr>
+                                <th>Citação</th>
+                                <th>Fonte</th>
+                                <th>Missão</th>
+                                <th>Ações</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {filteredDocs.length === 0 && (
+                                <tr>
+                                  <td colSpan={4} style={{ textAlign: "center", color: "var(--ink-faint)", padding: "20px", fontStyle: "italic" }}>
+                                    Nenhum documento encontrado para este filtro.
+                                  </td>
+                                </tr>
+                              )}
+                              {filteredDocs.map((doc: any) => (
+                                <tr key={doc.id}>
+                                  <td><strong>{doc.citation}</strong></td>
+                                  <td style={{ color: "var(--ink-faint)", fontSize: "11px" }}>{doc.source}</td>
+                                  <td>{getMissionChip(doc.agent_task_type || "global")}</td>
+                                  <td>
+                                    <button
+                                      onClick={() => handleDeleteGroundingDoc(doc.id)}
+                                      style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--bordo)", fontSize: "11px", fontWeight: 600 }}
+                                    >
+                                      Excluir
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
+
 
                 {adminSubTab === "usuarios" && (
                   <div>

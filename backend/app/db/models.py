@@ -86,6 +86,8 @@ class DBGroundingDoc(Base):
     text = Column(Text, nullable=False)
     source = Column(String, nullable=False) # LexML - Código Civil
     is_active = Column(Boolean, default=True)
+    agent_task_type = Column(String, nullable=True, default="global") # analise_peticao, rascunho_recurso, global, etc.
+
 
 
 class DBSystemSetting(Base):

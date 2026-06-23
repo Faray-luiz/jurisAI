@@ -220,6 +220,7 @@ class GroundingDocPayload(BaseModel):
     citation: str
     text: str
     source: str
+    agent_task_type: str = "global"
 
 class UserCreatePayload(BaseModel):
     email: str
@@ -288,7 +289,8 @@ def get_grounding_docs(user: dict = Depends(get_current_user)):
             "citation": d.citation,
             "text": d.text,
             "source": d.source,
-            "is_active": d.is_active
+            "is_active": d.is_active,
+            "agent_task_type": d.agent_task_type or "global"
         } for d in docs]
     finally:
         db.close()
@@ -309,6 +311,7 @@ def update_grounding_doc(payload: GroundingDocPayload, user: dict = Depends(get_
         doc.text = payload.text
         doc.source = payload.source
         doc.is_active = True
+        doc.agent_task_type = payload.agent_task_type or "global"
         db.commit()
         return {"status": "ok", "message": f"Documento '{payload.citation}' salvo com sucesso."}
     except Exception as e:
@@ -321,6 +324,7 @@ def update_grounding_doc(payload: GroundingDocPayload, user: dict = Depends(get_
 def upload_grounding_pdf(
     citation: str = Form(...),
     source: str = Form(...),
+    agent_task_type: str = Form("global"),
     file: UploadFile = File(...),
     user: dict = Depends(get_current_user)
 ):
@@ -352,8 +356,9 @@ def upload_grounding_pdf(
             doc.text = extracted_text
             doc.source = source
             doc.is_active = True
+            doc.agent_task_type = agent_task_type or "global"
             db.commit()
-            return {"status": "ok", "message": f"PDF carregado e salvo como citação '{citation}'."}
+            return {"status": "ok", "message": f"PDF carregado e salvo como citação '{citation}' para missão '{agent_task_type}'."}
         finally:
             db.close()
             

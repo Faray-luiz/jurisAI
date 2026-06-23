@@ -136,20 +136,23 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
     temperature = cfg["temperature"]
     system_prompt = cfg["system_prompt"]
     
-    # 1. Retrieve RAG Context dynamically (stable context for prompt caching)
-    from backend.app.db.session import SessionLocal
-    from backend.app.db.models import DBGroundingDoc
-    db = SessionLocal()
+    # 1. Retrieve RAG Context dynamically — Mission-Aware Top-K Semantic Search
+    from backend.app.services.vector_store import query_vector_store
     rag_context = ""
     try:
-        docs = db.query(DBGroundingDoc).filter(DBGroundingDoc.is_active == True).all()
-        if docs:
-            rag_context = "Use a seguinte base de leis e resoluções federais vigentes para fundamentar suas respostas:\n\n"
-            rag_context += "\n\n".join([f"### {d.citation}\n{d.text}" for d in docs])
+        rag_results = query_vector_store(query=prompt, task_type=task_type, top_k=3)
+        if rag_results:
+            rag_context = (
+                "Use os seguintes dispositivos legais, selecionados por relavância para esta consulta, "
+                "para fundamentar sua resposta com precisão jurídica:\n\n"
+            )
+            rag_context += "\n\n".join(
+                [f"### {r['citation']} ({r['source']})\n{r['text']}" for r in rag_results]
+            )
+            print(f"[RAG] task_type='{task_type}' → {len(rag_results)} doc(s) retrieved: "
+                  f"{[r['citation'] for r in rag_results]}")
     except Exception as e:
-        print(f"Error retrieving RAG docs for context: {e}")
-    finally:
-        db.close()
+        print(f"[RAG] Error retrieving mission-aware context: {e}")
 
     # 2. Process History with Rolling Window Summarization (Compress if > 6 messages)
     processed_history = []

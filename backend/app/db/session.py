@@ -1,6 +1,6 @@
 import time
 import json
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from backend.app.db.models import Base, DBUser, DBProcess, DBAuditLog, DBAgentConfig, DBGroundingDoc, DBSystemSetting
 from backend.app.core.config import settings
@@ -27,6 +27,16 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Create tables
 Base.metadata.create_all(bind=engine)
+
+# Defensively add agent_task_type to grounding_docs for SQLite/Postgres in case table exists
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE grounding_docs ADD COLUMN agent_task_type VARCHAR DEFAULT 'global'"))
+        conn.commit()
+    except Exception:
+        # Column already exists, ignore
+        pass
+
 
 # Helper: DB model to dictionary translation
 def user_to_dict(user: DBUser) -> dict:
@@ -208,35 +218,40 @@ def seed_database():
                     citation="Art. 5º da CF/88",
                     text="Art. 5º Todos são iguais perante a lei, sem distinção de qualquer natureza, garantindo-se aos brasileiros e aos estrangeiros residentes no País a inviolabilidade do direito à vida, à liberdade, à igualdade, à segurança e à propriedade.",
                     source="LexML - Constituição Federal",
-                    is_active=True
+                    is_active=True,
+                    agent_task_type="global"
                 ),
                 DBGroundingDoc(
                     key="art 186 cc",
                     citation="Art. 186 do Código Civil",
                     text="Art. 186. Aquele que, por ação ou omissão voluntária, negligência ou imprudência, violar direito e causar dano a outrem, ainda que exclusivamente moral, comete ato ilícito.",
                     source="LexML - Código Civil",
-                    is_active=True
+                    is_active=True,
+                    agent_task_type="analise_peticao"
                 ),
                 DBGroundingDoc(
                     key="art 927 cc",
                     citation="Art. 927 do Código Civil",
                     text="Art. 927. Aquele que, por ato ilícito (arts. 186 e 187), causar dano a outrem, fica obrigado a repará-lo.",
                     source="LexML - Código Civil",
-                    is_active=True
+                    is_active=True,
+                    agent_task_type="analise_peticao"
                 ),
                 DBGroundingDoc(
                     key="art 319 cpc",
                     citation="Art. 319 do CPC/2015",
                     text="Art. 319. A petição inicial indicará: I - o juízo a que é dirigida; II - os nomes, os prenomes, o estado civil, a profissão, o CPF ou o CNPJ, o endereço eletrônico e o domicílio e a residência do autor e do réu; III - os fatos e os fundamentos jurídicos do pedido...",
                     source="LexML - Código de Processo Civil",
-                    is_active=True
+                    is_active=True,
+                    agent_task_type="rascunho_recurso"
                 ),
                 DBGroundingDoc(
                     key="art 373 cpc",
                     citation="Art. 373 do CPC/2015",
                     text="Art. 373. O ônus da prova incumbe: I - ao autor, quanto ao fato constitutivo de seu direito; II - ao réu, quanto à existência de fato impeditivo, modificativo ou extintivo do direito do autor.",
                     source="LexML - Código de Processo Civil",
-                    is_active=True
+                    is_active=True,
+                    agent_task_type="rascunho_recurso"
                 )
             ]
             db.add_all(docs)
