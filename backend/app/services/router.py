@@ -59,9 +59,75 @@ def route_task(prompt: str, task_type: str = "default") -> Tuple[str, str]:
     cfg = get_agent_config(task_type)
     return cfg["model"], cfg["provider"]
 
-def generate_response(prompt: str, task_type: str = "default", model_override: str = None) -> Tuple[str, str, int, int]:
+def summarize_history_context(old_messages: list, provider: str) -> str:
+    """
+    Summarizes older messages using a cheap fast model to preserve context and save tokens.
+    """
+    summary_prompt = (
+        "Você é um copiloto de IA jurídico. Resuma de forma extremamente concisa a conversa jurídica anterior "
+        "em um único parágrafo focado nos pontos de direito debatidos, teses levantadas e fatos estabelecidos. "
+        "Não adicione introduções ou conclusões, retorne apenas o resumo em português.\n\n"
+        "Conversa a ser resumida:\n"
+    )
+    for msg in old_messages:
+        role_label = "Advogado" if msg.get("role") == "user" else "Assistente"
+        summary_prompt += f"{role_label}: {msg.get('content')}\n"
+    
+    try:
+        # Check if API keys are default mock values to run in simulation mode
+        is_openai_mock = settings.OPENAI_API_KEY == "mock-openai-key" or not settings.OPENAI_API_KEY
+        is_anthropic_mock = settings.ANTHROPIC_API_KEY == "mock-anthropic-key" or not settings.ANTHROPIC_API_KEY
+        is_gemini_mock = settings.GEMINI_API_KEY == "mock-gemini-key" or not settings.GEMINI_API_KEY
+        
+        if (provider == "openai" and is_openai_mock) or \
+           (provider == "anthropic" and is_anthropic_mock) or \
+           (provider == "google" and is_gemini_mock):
+            return "Resumo anterior: O advogado consultou sobre conformidade do peticionamento recursal e regras de responsabilidade civil."
+        
+        if provider == "anthropic":
+            import anthropic
+            client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+            message = client.messages.create(
+                model="claude-haiku-4-5",
+                max_tokens=300,
+                temperature=0.0,
+                system="Você é um assistente conciso de resumo jurídico.",
+                messages=[{"role": "user", "content": summary_prompt}]
+            )
+            return message.content[0].text
+            
+        elif provider == "google":
+            import google.generativeai as genai
+            genai.configure(api_key=settings.GEMINI_API_KEY)
+            model_instance = genai.GenerativeModel(
+                model_name="gemini-3.5-flash",
+                system_instruction="Você é um assistente conciso de resumo jurídico."
+            )
+            response = model_instance.generate_content(
+                summary_prompt,
+                generation_config={"temperature": 0.0}
+            )
+            return response.text
+            
+        else: # openai
+            from openai import OpenAI
+            client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                temperature=0.0,
+                messages=[
+                    {"role": "system", "content": "Você é um assistente conciso de resumo jurídico."},
+                    {"role": "user", "content": summary_prompt}
+                ]
+            )
+            return response.choices[0].message.content
+    except Exception as e:
+        return f"Resumo automático (Erro na chamada do LLM de resumo: {e}): Histórico de interações e teses jurídicas analisadas previamente."
+
+def generate_response(prompt: str, task_type: str = "default", model_override: str = None, history: list = None) -> Tuple[str, str, int, int]:
     """
     Generates response from selected model or falls back to simulation.
+    Supports dynamic RAG context injection, prompt caching, and rolling window history summarization.
     Returns (response_text, model_used, input_tokens, output_tokens)
     """
     cfg = get_agent_config(task_type)
@@ -70,13 +136,64 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
     temperature = cfg["temperature"]
     system_prompt = cfg["system_prompt"]
     
+    # 1. Retrieve RAG Context dynamically (stable context for prompt caching)
+    from backend.app.db.session import SessionLocal
+    from backend.app.db.models import DBGroundingDoc
+    db = SessionLocal()
+    rag_context = ""
+    try:
+        docs = db.query(DBGroundingDoc).filter(DBGroundingDoc.is_active == True).all()
+        if docs:
+            rag_context = "Use a seguinte base de leis e resoluções federais vigentes para fundamentar suas respostas:\n\n"
+            rag_context += "\n\n".join([f"### {d.citation}\n{d.text}" for d in docs])
+    except Exception as e:
+        print(f"Error retrieving RAG docs for context: {e}")
+    finally:
+        db.close()
+
+    # 2. Process History with Rolling Window Summarization (Compress if > 6 messages)
+    processed_history = []
+    if history and len(history) > 0:
+        if len(history) > 6:
+            # Slices: compress everything except the last 4 messages (representing 2 turns)
+            compress_slice = history[:-4]
+            preserve_slice = history[-4:]
+            
+            # Generate summary in background/synchronously using cheap model
+            summary = summarize_history_context(compress_slice, provider)
+            
+            # Prepend summary to history in alternating pattern
+            processed_history.append({
+                "role": "user",
+                "content": f"[Histórico anterior resumido para economia de tokens: {summary}]"
+            })
+            processed_history.append({
+                "role": "assistant",
+                "content": "Entendido perfeitamente. Como posso ajudar com as próximas etapas com base nesse histórico?"
+            })
+            
+            # Append preserved recent exchanges
+            for msg in preserve_slice:
+                processed_history.append({
+                    "role": "user" if msg.get("role") == "user" else "assistant",
+                    "content": msg.get("content")
+                })
+        else:
+            for msg in history:
+                processed_history.append({
+                    "role": "user" if msg.get("role") == "user" else "assistant",
+                    "content": msg.get("content")
+                })
+
     # Calculate mock tokens
     input_tokens = len(prompt.split()) * 2
+    if history:
+        input_tokens += sum(len(m.get("content", "").split()) for m in history) * 2
     
     # Check if API keys are default mock values to run in simulation mode
-    is_openai_mock = settings.OPENAI_API_KEY == "mock-openai-key"
-    is_anthropic_mock = settings.ANTHROPIC_API_KEY == "mock-anthropic-key"
-    is_gemini_mock = settings.GEMINI_API_KEY == "mock-gemini-key"
+    is_openai_mock = settings.OPENAI_API_KEY == "mock-openai-key" or not settings.OPENAI_API_KEY
+    is_anthropic_mock = settings.ANTHROPIC_API_KEY == "mock-anthropic-key" or not settings.ANTHROPIC_API_KEY
+    is_gemini_mock = settings.GEMINI_API_KEY == "mock-gemini-key" or not settings.GEMINI_API_KEY
     
     if (provider == "openai" and is_openai_mock) or \
        (provider == "anthropic" and is_anthropic_mock) or \
@@ -93,12 +210,37 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
             import anthropic
             client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
             model_id = "claude-sonnet-4-6" if model in ["claude-3-5-sonnet", "claude-3-5-sonnet-latest", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet-20240620"] else model
+            
+            # Construct cache-augmented system prompt (CAG)
+            system_blocks = [
+                {
+                    "type": "text",
+                    "text": system_prompt,
+                    "cache_control": {"type": "ephemeral"}
+                }
+            ]
+            if rag_context:
+                system_blocks.append({
+                    "type": "text",
+                    "text": rag_context,
+                    "cache_control": {"type": "ephemeral"}
+                })
+            
+            # Format messages
+            messages_payload = []
+            for msg in processed_history:
+                messages_payload.append({
+                    "role": "user" if msg["role"] == "user" else "assistant",
+                    "content": msg["content"]
+                })
+            messages_payload.append({"role": "user", "content": prompt})
+            
             message = client.messages.create(
                 model=model_id,
                 max_tokens=2048,
                 temperature=temperature,
-                system=system_prompt,
-                messages=[{"role": "user", "content": prompt}]
+                system=system_blocks,
+                messages=messages_payload
             )
             response_text = message.content[0].text
             input_toks = message.usage.input_tokens
@@ -108,16 +250,35 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
         elif provider == "google" or "gemini" in model.lower():
             import google.generativeai as genai
             genai.configure(api_key=settings.GEMINI_API_KEY)
+            
+            # Format Gemini system instruction and contents
+            full_system = system_prompt
+            if rag_context:
+                full_system += f"\n\n{rag_context}"
+                
             model_instance = genai.GenerativeModel(
                 model_name=model,
-                system_instruction=system_prompt
+                system_instruction=full_system
             )
+            
+            # Form contents history list
+            contents = []
+            for msg in processed_history:
+                role = "user" if msg["role"] == "user" else "model"
+                contents.append({
+                    "role": role,
+                    "parts": [msg["content"]]
+                })
+            contents.append({
+                "role": "user",
+                "parts": [prompt]
+            })
+            
             response = model_instance.generate_content(
-                prompt,
+                contents,
                 generation_config={"temperature": temperature}
             )
             response_text = response.text
-            # Calculate tokens
             input_toks = len(prompt.split()) * 2
             output_toks = len(response_text.split()) * 2
             return response_text, model, input_toks, output_toks
@@ -125,13 +286,26 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
         else: # provider == "openai"
             from openai import OpenAI
             client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            
+            messages_payload = []
+            
+            full_system = system_prompt
+            if rag_context:
+                full_system += f"\n\n{rag_context}"
+                
+            messages_payload.append({"role": "system", "content": full_system})
+            
+            for msg in processed_history:
+                messages_payload.append({
+                    "role": "user" if msg["role"] == "user" else "assistant",
+                    "content": msg["content"]
+                })
+            messages_payload.append({"role": "user", "content": prompt})
+            
             response = client.chat.completions.create(
                 model=model,
                 temperature=temperature,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
-                ]
+                messages=messages_payload
             )
             response_text = response.choices[0].message.content
             input_toks = response.usage.prompt_tokens
@@ -147,12 +321,24 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
         else:
             from openai import OpenAI
             client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            
+            full_system = system_prompt
+            if rag_context:
+                full_system += f"\n\n{rag_context}"
+                
+            messages_payload = [
+                {"role": "system", "content": full_system}
+            ]
+            for msg in processed_history:
+                messages_payload.append({
+                    "role": "user" if msg["role"] == "user" else "assistant",
+                    "content": msg["content"]
+                })
+            messages_payload.append({"role": "user", "content": prompt})
+            
             response = client.chat.completions.create(
                 model=fallback_model,
                 temperature=0.0,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
-                ]
+                messages=messages_payload
             )
             return response.choices[0].message.content, fallback_model, response.usage.prompt_tokens, response.usage.completion_tokens

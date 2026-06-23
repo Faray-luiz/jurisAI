@@ -542,7 +542,8 @@ export default function Home() {
         body: JSON.stringify({
           prompt: promptPayload,
           process_id: selectedProcessId,
-          task_type: task_type
+          task_type: task_type,
+          history: messages.map(m => ({ role: m.role, content: m.content }))
         })
       });
 

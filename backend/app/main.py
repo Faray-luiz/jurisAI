@@ -28,11 +28,16 @@ app.add_middleware(
 )
 
 # Payloads
+class MessagePayload(BaseModel):
+    role: str
+    content: str
+
 class ChatPayload(BaseModel):
     prompt: str
     process_id: Optional[str] = None
     task_type: str = "default"  # analise_peticao, rascunho_recurso, default
     model_override: Optional[str] = None
+    history: Optional[List[MessagePayload]] = None
 
 class QuotaUpdatePayload(BaseModel):
     email: str
@@ -114,8 +119,9 @@ def chat_interaction(payload: ChatPayload, user: dict = Depends(get_current_user
         raise HTTPException(status_code=402, detail=quota_status["message"])
         
     # 5. Generate LLM response (or simulation)
+    history_list = [{"role": h.role, "content": h.content} for h in payload.history] if payload.history else None
     raw_response, model_used, input_tokens, output_tokens = generate_response(
-        payload.prompt, payload.task_type, payload.model_override
+        payload.prompt, payload.task_type, payload.model_override, history=history_list
     )
     
     # 6. Sychronous Grounding check
