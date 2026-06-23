@@ -462,11 +462,11 @@ def get_provider_status(user: dict = Depends(get_current_user)):
             import anthropic
             client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
             client.messages.create(
-                model="claude-3-5-sonnet-20240620",
+                model="claude-3-5-sonnet-20241022",
                 max_tokens=1,
                 messages=[{"role": "user", "content": "ping"}]
             )
-            status["anthropic"] = {"status": "ativo", "message": "Conexão ativa e modelo claude-3-5-sonnet-20240620 disponível"}
+            status["anthropic"] = {"status": "ativo", "message": "Conexão ativa e modelo claude-3-5-sonnet-20241022 disponível"}
         except Exception as e:
             status["anthropic"] = {"status": "erro", "message": f"Falha na API: {str(e)}"}
             
