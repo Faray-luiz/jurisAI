@@ -21,15 +21,19 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "mock-anthropic-key")
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "mock-gemini-key")
     
-    # Cost per 1k tokens (input, output) in USD
-    # As per PRD selection
     MODEL_PRICING: Dict[str, Dict[str, float]] = {
         "gpt-4o-mini": {"input": 0.000150, "output": 0.000600},
         "gpt-4o": {"input": 0.002500, "output": 0.010000},
         "claude-3-5-sonnet": {"input": 0.003000, "output": 0.015000},
+        "claude-3-5-sonnet-latest": {"input": 0.003000, "output": 0.015000},
+        "claude-3-5-sonnet-20241022": {"input": 0.003000, "output": 0.015000},
+        "claude-3-5-sonnet-20240620": {"input": 0.003000, "output": 0.015000},
         "claude-3-opus": {"input": 0.015000, "output": 0.075000},
-        "gemini-1.5-pro": {"input": 0.001250, "output": 0.005000},
-        "gemini-1.5-flash": {"input": 0.000075, "output": 0.000300}
+        "gemini-3.5-flash": {"input": 0.000075, "output": 0.000300},
+        "gemini-3.1-pro": {"input": 0.001250, "output": 0.005000},
+        "gemini-3-flash": {"input": 0.000075, "output": 0.000300},
+        "gemini-2.5-pro": {"input": 0.001250, "output": 0.005000},
+        "gemini-2.5-flash": {"input": 0.000075, "output": 0.000300}
     }
     
     class Config:

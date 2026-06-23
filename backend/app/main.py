@@ -478,9 +478,9 @@ def get_provider_status(user: dict = Depends(get_current_user)):
         try:
             import google.generativeai as genai
             genai.configure(api_key=settings.GEMINI_API_KEY)
-            model = genai.GenerativeModel("gemini-1.5-flash")
+            model = genai.GenerativeModel("gemini-3.5-flash")
             model.generate_content("ping")
-            status["google"] = {"status": "ativo", "message": "Conexão ativa e modelo gemini-1.5-flash disponível"}
+            status["google"] = {"status": "ativo", "message": "Conexão ativa e modelo gemini-3.5-flash disponível"}
         except Exception as e:
             status["google"] = {"status": "erro", "message": f"Falha na API: {str(e)}"}
             

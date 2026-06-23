@@ -120,7 +120,7 @@ def run_tests():
     update_payload = {
         "task_type": "analise_peticao",
         "provider": "google",
-        "model": "gemini-1.5-pro",
+        "model": "gemini-3.1-pro",
         "temperature": 0.2,
         "system_prompt": "Instrução de Teste"
     }
@@ -130,7 +130,7 @@ def run_tests():
     # Verify dynamic routing reflects the update
     from backend.app.services.router import route_task
     model_name, provider = route_task("olá", "analise_peticao")
-    assert model_name == "gemini-1.5-pro"
+    assert model_name == "gemini-3.1-pro"
     assert provider == "google"
     
     # Restore original config
