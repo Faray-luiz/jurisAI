@@ -52,29 +52,48 @@ def run_tests():
     assert status["status"] == "locked"
     print("Bloqueio de Cota Estourada OK!")
     
-    # 4. Test Google Workspace Auto-Onboarding
-    print("\n4. Testando Auto-Onboarding do Google Workspace...")
+    # 4. Test Restrict Access to Created Users
+    print("\n4. Testando Restrição de Acesso a Usuários Criados...")
     import time
+    from fastapi import HTTPException
+    
     new_email = f"rodrigo.adv.{int(time.time())}@jurisai.com.br"
     
     # Verify user does not exist yet
     assert get_db_user(new_email) is None
     
-    # Simulate Google Auth Token login
+    # Verify login fails (401)
     mock_token = f"Bearer {new_email}"
+    try:
+        get_current_user(mock_token)
+        assert False, "Deveria ter lançado HTTPException 401"
+    except HTTPException as e:
+        assert e.status_code == 401
+        assert "não cadastrado" in e.detail
+        
+    # Now simulate admin creating the user
+    from backend.app.db.session import SessionLocal
+    from backend.app.db.models import DBUser
+    db = SessionLocal()
+    try:
+        new_u = DBUser(
+            email=new_email,
+            name="Rodrigo Mendes",
+            role="Advogado",
+            quota_limit=50.0,
+            quota_spent=0.0
+        )
+        db.add(new_u)
+        db.commit()
+    finally:
+        db.close()
+        
+    # Verify login now succeeds
     user_profile = get_current_user(mock_token)
-    
     assert user_profile is not None
     assert user_profile["email"] == new_email
     assert user_profile["role"] == "Advogado"
-    assert user_profile["quota_limit"] == 50.0
-    
-    # Confirm it is now persistent in database
-    db_check = get_db_user(new_email)
-    assert db_check is not None
-    assert db_check["name"].startswith("Rodrigo.adv")
-    
-    print("Auto-Onboarding do Google Workspace OK!")
+    print("Restrição de Acesso a Usuários Criados OK!")
     # 5. Test Admin API Endpoints
     print("\n5. Testando Endpoints de Administração...")
     from fastapi.testclient import TestClient

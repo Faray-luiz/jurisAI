@@ -26,6 +26,9 @@ interface Message {
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"chat" | "auditoria">("chat");
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginLoading, setLoginLoading] = useState(false);
   const [usersList, setUsersList] = useState<any[]>([]);
   const [processes, setProcesses] = useState<any[]>([]);
   const [selectedProcessId, setSelectedProcessId] = useState<string>("N/A");
@@ -99,9 +102,10 @@ export default function Home() {
 
   // Fetch initial configuration & active user profile
   useEffect(() => {
-    // We default simulated token to Lucas Silva on startup
-    const storedEmail = localStorage.getItem("auth_email") || "lucas@jurisai.com.br";
-    fetchUserData(storedEmail);
+    const storedEmail = localStorage.getItem("auth_email");
+    if (storedEmail) {
+      fetchUserData(storedEmail);
+    }
   }, []);
 
   const fetchUserData = async (email: string) => {
@@ -115,7 +119,8 @@ export default function Home() {
       const userData = await userRes.json();
       if (!userRes.ok) {
         showToast(userData.detail || "Erro de autenticação.");
-        return;
+        setCurrentUser(null);
+        return false;
       }
       setCurrentUser(userData);
 
@@ -157,10 +162,39 @@ export default function Home() {
         fetchGroundingDocs(email);
         fetchAdminMetrics(email);
       }
+      return true;
     } catch (err) {
       console.error("Error fetching user data:", err);
       showToast("Erro ao carregar dados do usuário.");
+      setCurrentUser(null);
+      return false;
     }
+  };
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginEmail) return;
+    setLoginLoading(true);
+    setLoginError(null);
+    try {
+      const success = await fetchUserData(loginEmail);
+      if (!success) {
+        setLoginError("Acesso negado: Este e-mail não possui cadastro ativo. Solicite acesso a um Sócio do escritório.");
+      }
+    } catch (err: any) {
+      setLoginError("Erro de conexão. Verifique se o servidor backend está online.");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("auth_email");
+    setCurrentUser(null);
+    setMessages([]);
+    setProcesses([]);
+    setLoginEmail("");
+    setLoginError(null);
   };
 
   const fetchAudits = async (email: string) => {
@@ -687,6 +721,174 @@ export default function Home() {
     });
   };
 
+  if (!currentUser) {
+    return (
+      <div 
+        style={{ 
+          display: "flex", 
+          alignItems: "center", 
+          justifyContent: "center", 
+          minHeight: "100vh", 
+          background: "var(--paper)",
+          fontFamily: "'IBM Plex Sans', sans-serif"
+        }}
+      >
+        <div 
+          style={{ 
+            background: "var(--surface)", 
+            border: "1px solid var(--line)", 
+            borderRadius: "14px", 
+            padding: "40px", 
+            width: "100%", 
+            maxWidth: "400px", 
+            boxShadow: "var(--shadow)" 
+          }}
+        >
+          {/* Logo Seal */}
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
+            <div 
+              style={{ 
+                width: "48px", 
+                height: "48px", 
+                borderRadius: "11px", 
+                background: "linear-gradient(160deg, var(--bordo), #5e2222)",
+                color: "#fff",
+                display: "grid",
+                placeItems: "center",
+                fontFamily: "'Fraunces', serif",
+                fontSize: "24px",
+                fontWeight: 600,
+                boxShadow: "inset 0 1px 2px rgba(255,255,255,0.15)"
+              }}
+            >
+              J
+            </div>
+          </div>
+
+          <h2 
+            className="text-title" 
+            style={{ 
+              textAlign: "center", 
+              marginBottom: "6px", 
+              color: "var(--ink)",
+              fontFamily: "'Fraunces', serif",
+              fontSize: "24px",
+              fontWeight: 400
+            }}
+          >
+            JurisAI Gateway
+          </h2>
+          
+          <p 
+            style={{ 
+              fontSize: "13px", 
+              color: "var(--ink-faint)", 
+              textAlign: "center", 
+              marginBottom: "28px" 
+            }}
+          >
+            Controle de Governança e Roteamento de Modelos
+          </p>
+
+          {loginError && (
+            <div 
+              style={{ 
+                background: "rgba(122, 46, 46, 0.08)", 
+                border: "1px solid rgba(122, 46, 46, 0.3)", 
+                borderRadius: "8px", 
+                padding: "12px", 
+                fontSize: "12px", 
+                color: "var(--bordo)", 
+                marginBottom: "20px",
+                lineHeight: "1.45"
+              }}
+            >
+              {loginError}
+            </div>
+          )}
+
+          <form onSubmit={handleLoginSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div>
+              <label 
+                className="text-label" 
+                style={{ display: "block", marginBottom: "6px", fontSize: "11px" }}
+              >
+                E-mail Corporativo Autorizado
+              </label>
+              <input 
+                type="email"
+                required
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                placeholder="seu.nome@jurisai.com.br"
+                style={{ 
+                  width: "100%", 
+                  padding: "10px", 
+                  borderRadius: "9px", 
+                  border: "1px solid var(--line)", 
+                  fontSize: "13.5px",
+                  outline: "none"
+                }}
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              className="btn" 
+              disabled={loginLoading}
+              style={{ justifyContent: "center", padding: "10px", width: "100%" }}
+            >
+              {loginLoading ? <Loader2 size={14} className="spin" /> : "Entrar"}
+            </button>
+          </form>
+
+          {/* Simulated Login Links */}
+          <div style={{ marginTop: "32px", borderTop: "1px solid var(--line)", paddingTop: "20px" }}>
+            <span 
+              className="text-label" 
+              style={{ display: "block", marginBottom: "12px", fontSize: "10px", textAlign: "center", color: "var(--ink-faint)" }}
+            >
+              Ambiente de Homologação / Simulação
+            </span>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+              {[
+                { email: "lucas@jurisai.com.br", label: "Lucas (Advogado)" },
+                { email: "mariana@jurisai.com.br", label: "Mariana (Advogada)" },
+                { email: "roberto@jurisai.com.br", label: "Roberto (Sócio)" },
+                { email: "ana@jurisai.com.br", label: "Ana (Compliance)" }
+              ].map(sim => (
+                <button
+                  key={sim.email}
+                  type="button"
+                  onClick={() => {
+                    setLoginEmail(sim.email);
+                    setLoginError(null);
+                    localStorage.setItem("auth_email", sim.email);
+                    fetchUserData(sim.email);
+                  }}
+                  style={{
+                    background: "var(--paper-2)",
+                    border: "1px solid var(--line)",
+                    borderRadius: "6px",
+                    fontSize: "11px",
+                    padding: "6px",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    fontWeight: 500,
+                    color: "var(--ink-soft)",
+                    textAlign: "center"
+                  }}
+                >
+                  {sim.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       {/* Sidebar Navigation */}
@@ -696,6 +898,7 @@ export default function Home() {
         currentUser={currentUser}
         usersList={usersList}
         onUserChange={handleUserChange}
+        onLogout={handleLogout}
       />
 
       {/* Main Container */}

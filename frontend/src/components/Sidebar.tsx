@@ -9,6 +9,7 @@ interface SidebarProps {
   currentUser: any;
   usersList: any[];
   onUserChange: (email: string) => void;
+  onLogout?: () => void;
 }
 
 export default function Sidebar({
@@ -16,7 +17,8 @@ export default function Sidebar({
   setActiveTab,
   currentUser,
   usersList,
-  onUserChange
+  onUserChange,
+  onLogout
 }: SidebarProps) {
   if (!currentUser) return null;
 
@@ -171,6 +173,27 @@ export default function Sidebar({
         <span style={{ fontSize: "9.5px", color: "var(--rail-text)", textAlign: "center" }}>
           Digite e aperte Entrar para simular Google SSO
         </span>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            type="button"
+            style={{
+              marginTop: "16px",
+              background: "transparent",
+              color: "var(--rail-text)",
+              border: "1px solid var(--rail-line)",
+              borderRadius: "6px",
+              fontSize: "11px",
+              fontWeight: 500,
+              padding: "6px",
+              cursor: "pointer",
+              textAlign: "center",
+              width: "100%"
+            }}
+          >
+            Sair da Conta
+          </button>
+        )}
       </div>
     </aside>
   );

@@ -74,8 +74,7 @@ def verify_google_token(token: str) -> dict:
 
 def get_current_user(token: str = Depends(api_key_header)) -> dict:
     if not token:
-        # Default to Lucas for local validation convenience if header is missing
-        return get_db_user("lucas@jurisai.com.br")
+        raise HTTPException(status_code=401, detail="Token de autorização ausente.")
     
     raw_token = token.replace("Bearer ", "").strip()
     
@@ -87,31 +86,7 @@ def get_current_user(token: str = Depends(api_key_header)) -> dict:
     if user:
         return user
         
-    # Auto onboarding for new Google Workspace users
-    from backend.app.db.session import SessionLocal
-    from backend.app.db.models import DBUser
-    
-    db = SessionLocal()
-    try:
-        new_user = DBUser(
-            email=email,
-            name=google_profile["name"],
-            role="Advogado",
-            quota_limit=50.0,
-            quota_spent=0.0,
-            assigned_clients=["Companhia Gama"],
-            conflicted_clients=[]
-        )
-        db.add(new_user)
-        db.commit()
-        
-        # return user dict
-        return get_db_user(email)
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=401, detail=f"Erro no auto-cadastro de usuário do Google Workspace: {e}")
-    finally:
-        db.close()
+    raise HTTPException(status_code=401, detail="Acesso negado: Usuário não cadastrado na plataforma.")
 
 def verify_process_access(process_id: str, user: dict = Depends(get_current_user)) -> dict:
     # Find the process in DB
