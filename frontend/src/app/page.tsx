@@ -109,13 +109,36 @@ export default function Home() {
     enable_economic_routing: boolean;
     enable_global_budget: boolean;
     enable_client_billing: boolean;
+    openai_credits_added?: number;
+    anthropic_credits_added?: number;
+    google_credits_added?: number;
+    openai_spent?: number;
+    anthropic_spent?: number;
+    google_spent?: number;
+    openai_remaining?: number;
+    anthropic_remaining?: number;
+    google_remaining?: number;
   }>({
     global_budget: 15.0,
     enable_economic_routing: false,
     enable_global_budget: true,
-    enable_client_billing: true
+    enable_client_billing: true,
+    openai_credits_added: 5.0,
+    anthropic_credits_added: 5.0,
+    google_credits_added: 5.0,
+    openai_spent: 0.0,
+    anthropic_spent: 0.0,
+    google_spent: 0.0,
+    openai_remaining: 5.0,
+    anthropic_remaining: 5.0,
+    google_remaining: 5.0
   });
   const [savingSettings, setSavingSettings] = useState(false);
+
+  // Refill Form States
+  const [refillProvider, setRefillProvider] = useState<string>("openai");
+  const [refillAmount, setRefillAmount] = useState<number>(5.0);
+  const [recordingRefill, setRecordingRefill] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -294,10 +317,19 @@ export default function Home() {
       if (res.ok) {
         const data = await res.json();
         setSystemSettings({
-          global_budget: parseFloat(data.global_budget || "15.0"),
-          enable_economic_routing: data.enable_economic_routing === "true",
-          enable_global_budget: data.enable_global_budget === "true",
-          enable_client_billing: data.enable_client_billing === "true"
+          global_budget: parseFloat(data.global_budget || "0"),
+          enable_economic_routing: data.enable_economic_routing === true,
+          enable_global_budget: data.enable_global_budget === true,
+          enable_client_billing: data.enable_client_billing === true,
+          openai_credits_added: parseFloat(data.openai_credits_added || "0"),
+          anthropic_credits_added: parseFloat(data.anthropic_credits_added || "0"),
+          google_credits_added: parseFloat(data.google_credits_added || "0"),
+          openai_spent: parseFloat(data.openai_spent || "0"),
+          anthropic_spent: parseFloat(data.anthropic_spent || "0"),
+          google_spent: parseFloat(data.google_spent || "0"),
+          openai_remaining: parseFloat(data.openai_remaining || "0"),
+          anthropic_remaining: parseFloat(data.anthropic_remaining || "0"),
+          google_remaining: parseFloat(data.google_remaining || "0")
         });
       }
     } catch (err) {
@@ -315,7 +347,11 @@ export default function Home() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${currentUser.email}`
         },
-        body: JSON.stringify(systemSettings)
+        body: JSON.stringify({
+          enable_economic_routing: systemSettings.enable_economic_routing,
+          enable_global_budget: systemSettings.enable_global_budget,
+          enable_client_billing: systemSettings.enable_client_billing
+        })
       });
       const data = await res.json();
       if (res.ok) {
@@ -327,6 +363,41 @@ export default function Home() {
       showToast("Erro ao conectar.");
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const handleRecordRefill = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (refillAmount <= 0) {
+      showToast("O valor da recarga deve ser positivo.");
+      return;
+    }
+    setRecordingRefill(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/v1/admin/system-settings/refill`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${currentUser.email}`
+        },
+        body: JSON.stringify({
+          provider: refillProvider,
+          amount: refillAmount
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.message);
+        setRefillAmount(5.0);
+        fetchSystemSettings(currentUser.email);
+        fetchAdminMetrics(currentUser.email);
+      } else {
+        showToast(`Erro: ${data.detail}`);
+      }
+    } catch (err) {
+      showToast("Erro ao registrar recarga.");
+    } finally {
+      setRecordingRefill(false);
     }
   };
 
@@ -1823,26 +1894,26 @@ export default function Home() {
                               </label>
                               
                               <div style={{ opacity: systemSettings.enable_global_budget ? 1 : 0.5, transition: "opacity 0.2s" }}>
-                                <label className="text-label" style={{ display: "block", marginBottom: "6px", fontSize: "11px" }}>
-                                  Fundo de Caixa Global (USD)
+                                <label className="text-label" style={{ display: "block", marginBottom: "6px", fontSize: "11px", fontWeight: 600 }}>
+                                  SALDO CONSOLIDADO DAS APIs (USD)
                                 </label>
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  disabled={!systemSettings.enable_global_budget}
-                                  value={systemSettings.global_budget}
-                                  onChange={(e) => setSystemSettings(prev => ({ ...prev, global_budget: parseFloat(e.target.value) || 0 }))}
-                                  style={{
-                                    width: "100%",
-                                    padding: "9px",
-                                    borderRadius: "6px",
-                                    border: "1px solid var(--line)",
-                                    fontSize: "13px",
-                                    background: systemSettings.enable_global_budget ? "#fff" : "var(--bg)"
-                                  }}
-                                />
+                                <div style={{
+                                  padding: "12px",
+                                  borderRadius: "6px",
+                                  border: "1px solid var(--line)",
+                                  fontSize: "18px",
+                                  fontWeight: 700,
+                                  background: "var(--bg)",
+                                  color: "var(--bordo)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "6px"
+                                }}>
+                                  <DollarSign size={18} />
+                                  {systemSettings.global_budget?.toFixed(4)} USD
+                                </div>
                                 <span style={{ fontSize: "10px", color: "var(--ink-faint)", marginTop: "6px", display: "block", lineHeight: "1.3" }}>
-                                  Bloqueia requisições se a soma dos gastos consolidada ultrapassar este teto, prevenindo estouros no saldo real das APIs.
+                                  Calculado automaticamente a partir das recargas registradas menos o consumo real acumulado de todas as contas. Não editável diretamente para segurança.
                                 </span>
                               </div>
                             </div>
@@ -1882,12 +1953,102 @@ export default function Home() {
 
                           </div>
 
-                          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "10px" }}>
+                          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "5px" }}>
                             <button type="submit" className="btn" disabled={savingSettings} style={{ padding: "10px 32px" }}>
                               {savingSettings ? <Loader2 size={13} className="spin" /> : "Salvar Governança"}
                             </button>
                           </div>
                         </form>
+
+                        {/* Providers Credit Breakdown */}
+                        <div style={{ borderTop: "1px solid var(--line)", paddingTop: "18px", marginTop: "20px" }}>
+                          <h4 style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--ink)", marginBottom: "12px" }}>Consolidação de Créditos por Provedor</h4>
+                          
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", marginBottom: "20px" }}>
+                            {/* OpenAI */}
+                            <div style={{ padding: "12px 16px", background: "rgba(0,0,0,0.01)", border: "1px solid var(--line)", borderRadius: "8px" }}>
+                              <div style={{ fontWeight: 600, fontSize: "12px", color: "var(--ink)", display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                                <span>OpenAI (GPT)</span>
+                                <span style={{ color: "var(--bordo)", fontWeight: 700 }}>${systemSettings.openai_remaining?.toFixed(4)} USD</span>
+                              </div>
+                              <div style={{ fontSize: "10px", color: "var(--ink-faint)", display: "flex", flexDirection: "column", gap: "2px" }}>
+                                <span>Total Recargas: ${systemSettings.openai_credits_added?.toFixed(2)} USD</span>
+                                <span>Total Gasto: ${systemSettings.openai_spent?.toFixed(4)} USD</span>
+                              </div>
+                            </div>
+
+                            {/* Anthropic */}
+                            <div style={{ padding: "12px 16px", background: "rgba(0,0,0,0.01)", border: "1px solid var(--line)", borderRadius: "8px" }}>
+                              <div style={{ fontWeight: 600, fontSize: "12px", color: "var(--ink)", display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                                <span>Anthropic (Claude)</span>
+                                <span style={{ color: "var(--bordo)", fontWeight: 700 }}>${systemSettings.anthropic_remaining?.toFixed(4)} USD</span>
+                              </div>
+                              <div style={{ fontSize: "10px", color: "var(--ink-faint)", display: "flex", flexDirection: "column", gap: "2px" }}>
+                                <span>Total Recargas: ${systemSettings.anthropic_credits_added?.toFixed(2)} USD</span>
+                                <span>Total Gasto: ${systemSettings.anthropic_spent?.toFixed(4)} USD</span>
+                              </div>
+                            </div>
+
+                            {/* Google */}
+                            <div style={{ padding: "12px 16px", background: "rgba(0,0,0,0.01)", border: "1px solid var(--line)", borderRadius: "8px" }}>
+                              <div style={{ fontWeight: 600, fontSize: "12px", color: "var(--ink)", display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                                <span>Google Gemini</span>
+                                <span style={{ color: "var(--bordo)", fontWeight: 700 }}>${systemSettings.google_remaining?.toFixed(4)} USD</span>
+                              </div>
+                              <div style={{ fontSize: "10px", color: "var(--ink-faint)", display: "flex", flexDirection: "column", gap: "2px" }}>
+                                <span>Total Recargas: ${systemSettings.google_credits_added?.toFixed(2)} USD</span>
+                                <span>Total Gasto: ${systemSettings.google_spent?.toFixed(4)} USD</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Registrar Nova Recarga Inline Form */}
+                          <div style={{ background: "rgba(0,0,0,0.015)", padding: "16px", borderRadius: "8px", border: "1px dashed var(--line)" }}>
+                            <h5 style={{ fontSize: "11.5px", fontWeight: 600, color: "var(--ink)", marginBottom: "8px", marginTop: 0 }}>Registrar Nova Recarga de Créditos (Sócio)</h5>
+                            <form onSubmit={handleRecordRefill} style={{ display: "flex", gap: "12px", alignItems: "flex-end", flexWrap: "wrap" }}>
+                              <div style={{ flex: 1, minWidth: "150px" }}>
+                                <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "10px" }}>Provedor</label>
+                                <select
+                                  value={refillProvider}
+                                  onChange={(e) => setRefillProvider(e.target.value)}
+                                  style={{
+                                    width: "100%",
+                                    padding: "8px",
+                                    borderRadius: "6px",
+                                    border: "1px solid var(--line)",
+                                    fontSize: "12px",
+                                    background: "#fff"
+                                  }}
+                                >
+                                  <option value="openai">OpenAI (GPT)</option>
+                                  <option value="anthropic">Anthropic (Claude)</option>
+                                  <option value="google">Google Gemini</option>
+                                </select>
+                              </div>
+                              
+                              <div style={{ width: "130px" }}>
+                                <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "10px" }}>Valor Recarregado (USD)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={refillAmount}
+                                  onChange={(e) => setRefillAmount(parseFloat(e.target.value) || 0)}
+                                  style={{
+                                    width: "100%",
+                                    padding: "8px",
+                                    borderRadius: "6px",
+                                    border: "1px solid var(--line)",
+                                    fontSize: "12px"
+                                  }}
+                                />
+                              </div>
+
+                              <button type="submit" className="btn btn-outline" disabled={recordingRefill} style={{ padding: "9px 20px", fontSize: "12px" }}>
+                                {recordingRefill ? <Loader2 size={12} className="spin" /> : "Registrar Recarga"}
+                              </button>
+                            </form>
+                          </div>
+                        </div>
                       </div>
                     )}
 

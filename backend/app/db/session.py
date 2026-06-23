@@ -401,7 +401,10 @@ def get_db_system_settings() -> dict:
             "global_budget": "15.0",
             "enable_economic_routing": "false",
             "enable_global_budget": "true",
-            "enable_client_billing": "true"
+            "enable_client_billing": "true",
+            "openai_credits_added": "5.0",
+            "anthropic_credits_added": "5.0",
+            "google_credits_added": "5.0"
         }
         for k, v in defaults.items():
             if k not in s_dict:
@@ -412,7 +415,10 @@ def get_db_system_settings() -> dict:
             "global_budget": "15.0",
             "enable_economic_routing": "false",
             "enable_global_budget": "true",
-            "enable_client_billing": "true"
+            "enable_client_billing": "true",
+            "openai_credits_added": "5.0",
+            "anthropic_credits_added": "5.0",
+            "google_credits_added": "5.0"
         }
     finally:
         db.close()

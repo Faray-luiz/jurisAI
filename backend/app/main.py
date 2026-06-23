@@ -411,28 +411,94 @@ def admin_create_user(payload: UserCreatePayload, user: dict = Depends(get_curre
         db.close()
 
 class SystemSettingsUpdatePayload(BaseModel):
-    global_budget: float
     enable_economic_routing: bool
     enable_global_budget: bool
     enable_client_billing: bool
+
+class RefillPayload(BaseModel):
+    provider: str
+    amount: float
 
 @app.get("/api/v1/admin/system-settings")
 def get_system_settings(user: dict = Depends(get_current_user)):
     if user["role"] not in ["Sócio"]:
         raise HTTPException(status_code=403, detail="Acesso restrito.")
-    from backend.app.db.session import get_db_system_settings
-    return get_db_system_settings()
+    from backend.app.db.session import get_db_system_settings, SessionLocal, update_db_system_setting
+    from backend.app.db.models import DBAuditLog
+    
+    settings_dict = get_db_system_settings()
+    
+    # Calculate spent by provider from audit logs
+    db = SessionLocal()
+    try:
+        logs = db.query(DBAuditLog).all()
+        openai_spent = sum(l.cost_usd for l in logs if "gpt" in l.model.lower())
+        anthropic_spent = sum(l.cost_usd for l in logs if "claude" in l.model.lower())
+        google_spent = sum(l.cost_usd for l in logs if "gemini" in l.model.lower())
+    except Exception:
+        openai_spent = 0.0
+        anthropic_spent = 0.0
+        google_spent = 0.0
+    finally:
+        db.close()
+        
+    openai_added = float(settings_dict.get("openai_credits_added", "5.0"))
+    anthropic_added = float(settings_dict.get("anthropic_credits_added", "5.0"))
+    google_added = float(settings_dict.get("google_credits_added", "5.0"))
+    
+    openai_remaining = max(openai_added - openai_spent, 0.0)
+    anthropic_remaining = max(anthropic_added - anthropic_spent, 0.0)
+    google_remaining = max(google_added - google_spent, 0.0)
+    
+    consolidated_balance = openai_remaining + anthropic_remaining + google_remaining
+    
+    # Update global_budget setting dynamically in the DB to enforce it
+    update_db_system_setting("global_budget", f"{consolidated_balance:.6f}")
+    
+    return {
+        "global_budget": consolidated_balance,
+        "enable_economic_routing": settings_dict.get("enable_economic_routing", "false").lower() == "true",
+        "enable_global_budget": settings_dict.get("enable_global_budget", "true").lower() == "true",
+        "enable_client_billing": settings_dict.get("enable_client_billing", "true").lower() == "true",
+        "openai_credits_added": openai_added,
+        "anthropic_credits_added": anthropic_added,
+        "google_credits_added": google_added,
+        "openai_spent": openai_spent,
+        "anthropic_spent": anthropic_spent,
+        "google_spent": google_spent,
+        "openai_remaining": openai_remaining,
+        "anthropic_remaining": anthropic_remaining,
+        "google_remaining": google_remaining
+    }
 
 @app.post("/api/v1/admin/system-settings")
 def update_system_settings(payload: SystemSettingsUpdatePayload, user: dict = Depends(get_current_user)):
     if user["role"] not in ["Sócio"]:
         raise HTTPException(status_code=403, detail="Acesso restrito.")
     from backend.app.db.session import update_db_system_setting
-    update_db_system_setting("global_budget", str(payload.global_budget))
     update_db_system_setting("enable_economic_routing", str(payload.enable_economic_routing).lower())
     update_db_system_setting("enable_global_budget", str(payload.enable_global_budget).lower())
     update_db_system_setting("enable_client_billing", str(payload.enable_client_billing).lower())
-    return {"status": "ok", "message": "Configurações do sistema atualizadas."}
+    return {"status": "ok", "message": "Configurações do sistema atualizadas com sucesso."}
+
+@app.post("/api/v1/admin/system-settings/refill")
+def add_refill(payload: RefillPayload, user: dict = Depends(get_current_user)):
+    if user["role"] not in ["Sócio"]:
+        raise HTTPException(status_code=403, detail="Acesso restrito.")
+    if payload.provider not in ["openai", "anthropic", "google"]:
+        raise HTTPException(status_code=400, detail="Provedor inválido.")
+    if payload.amount <= 0:
+        raise HTTPException(status_code=400, detail="O valor da recarga deve ser positivo.")
+        
+    from backend.app.db.session import get_db_system_settings, update_db_system_setting
+    settings_dict = get_db_system_settings()
+    
+    key = f"{payload.provider}_credits_added"
+    current_added = float(settings_dict.get(key, "5.0"))
+    new_total = current_added + payload.amount
+    
+    update_db_system_setting(key, f"{new_total:.2f}")
+    return {"status": "ok", "message": f"Recarga de ${payload.amount:.2f} registrada com sucesso para {payload.provider.upper()}."}
 
 @app.get("/api/v1/admin/metrics")
 def get_admin_metrics(user: dict = Depends(get_current_user)):
