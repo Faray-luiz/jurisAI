@@ -80,6 +80,21 @@ def chat_interaction(payload: ChatPayload, user: dict = Depends(get_current_user
     if payload.model_override:
         model = payload.model_override
         
+    # Check for economic routing fallback if enabled and user has spent >= 80% cota
+    from backend.app.db.session import get_db_system_settings
+    sys_settings = get_db_system_settings()
+    enable_economic_routing = sys_settings.get("enable_economic_routing", "false").lower() == "true"
+    
+    if enable_economic_routing and user["quota_limit"] > 0:
+        if user["quota_spent"] / user["quota_limit"] >= 0.8:
+            # Downgrade to cheaper model
+            if provider == "openai" and model != "gpt-4o-mini":
+                model = "gpt-4o-mini"
+            elif provider == "anthropic" and model != "claude-haiku-4-5":
+                model = "claude-haiku-4-5"
+            elif provider == "google" and model != "gemini-3.5-flash":
+                model = "gemini-3.5-flash"
+        
     # 4. Quota check: pre-flight estimation
     estimated_cost = estimate_request_cost(payload.prompt, model)
     quota_status = verify_and_update_quota(user["email"], estimated_cost)
@@ -389,6 +404,30 @@ def admin_create_user(payload: UserCreatePayload, user: dict = Depends(get_curre
     finally:
         db.close()
 
+class SystemSettingsUpdatePayload(BaseModel):
+    global_budget: float
+    enable_economic_routing: bool
+    enable_global_budget: bool
+    enable_client_billing: bool
+
+@app.get("/api/v1/admin/system-settings")
+def get_system_settings(user: dict = Depends(get_current_user)):
+    if user["role"] not in ["Sócio"]:
+        raise HTTPException(status_code=403, detail="Acesso restrito.")
+    from backend.app.db.session import get_db_system_settings
+    return get_db_system_settings()
+
+@app.post("/api/v1/admin/system-settings")
+def update_system_settings(payload: SystemSettingsUpdatePayload, user: dict = Depends(get_current_user)):
+    if user["role"] not in ["Sócio"]:
+        raise HTTPException(status_code=403, detail="Acesso restrito.")
+    from backend.app.db.session import update_db_system_setting
+    update_db_system_setting("global_budget", str(payload.global_budget))
+    update_db_system_setting("enable_economic_routing", str(payload.enable_economic_routing).lower())
+    update_db_system_setting("enable_global_budget", str(payload.enable_global_budget).lower())
+    update_db_system_setting("enable_client_billing", str(payload.enable_client_billing).lower())
+    return {"status": "ok", "message": "Configurações do sistema atualizadas."}
+
 @app.get("/api/v1/admin/metrics")
 def get_admin_metrics(user: dict = Depends(get_current_user)):
     if user["role"] not in ["Sócio", "Compliance"]:
@@ -414,6 +453,44 @@ def get_admin_metrics(user: dict = Depends(get_current_user)):
             cost_by_agent[l.action] = cost_by_agent.get(l.action, 0.0) + l.cost_usd
             
         # Grounding status distribution
+        from backend.app.db.models import DBProcess
+        processes = db.query(DBProcess).all()
+        process_map = {p.id: {"client": p.client, "title": p.title, "number": p.process_number} for p in processes}
+        
+        cost_by_client = {}
+        for l in logs:
+            p_info = process_map.get(l.process_id)
+            client_name = p_info["client"] if p_info else "Geral / Sem Processo"
+            
+            if client_name not in cost_by_client:
+                cost_by_client[client_name] = {
+                    "total_cost": 0.0,
+                    "queries_count": 0,
+                    "processes": {}
+                }
+            
+            cost_by_client[client_name]["total_cost"] += l.cost_usd
+            cost_by_client[client_name]["queries_count"] += 1
+            
+            p_id = l.process_id or "N/A"
+            p_title = p_info["title"] if p_info else "Interações Gerais"
+            p_number = p_info["number"] if p_info else "N/A"
+            
+            if p_id not in cost_by_client[client_name]["processes"]:
+                cost_by_client[client_name]["processes"][p_id] = {
+                    "process_id": p_id,
+                    "title": p_title,
+                    "number": p_number,
+                    "cost": 0.0,
+                    "queries": 0
+                }
+            cost_by_client[client_name]["processes"][p_id]["cost"] += l.cost_usd
+            cost_by_client[client_name]["processes"][p_id]["queries"] += 1
+
+        # Format processes as a list for cleaner frontend handling
+        for client_name, client_data in cost_by_client.items():
+            client_data["processes"] = list(client_data["processes"].values())
+
         grounding_dist = {}
         for l in logs:
             grounding_dist[l.grounding_status] = grounding_dist.get(l.grounding_status, 0) + 1
@@ -423,6 +500,7 @@ def get_admin_metrics(user: dict = Depends(get_current_user)):
             "total_cost": total_cost,
             "cost_by_user": cost_by_user,
             "cost_by_agent": cost_by_agent,
+            "cost_by_client": cost_by_client,
             "grounding_dist": grounding_dist,
             "user_count": len(users)
         }

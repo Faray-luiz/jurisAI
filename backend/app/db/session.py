@@ -2,7 +2,7 @@ import time
 import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from backend.app.db.models import Base, DBUser, DBProcess, DBAuditLog, DBAgentConfig, DBGroundingDoc
+from backend.app.db.models import Base, DBUser, DBProcess, DBAuditLog, DBAgentConfig, DBGroundingDoc, DBSystemSetting
 from backend.app.core.config import settings
 import os
 
@@ -242,6 +242,19 @@ def seed_database():
             db.add_all(docs)
             db.commit()
             print("Grounding Docs seeded successfully.")
+            
+        # Seed System Settings if empty
+        if db.query(DBSystemSetting).count() == 0:
+            print("Pre-seeding System Settings...")
+            sys_settings = [
+                DBSystemSetting(key="global_budget", value="15.0"),
+                DBSystemSetting(key="enable_economic_routing", value="false"),
+                DBSystemSetting(key="enable_global_budget", value="true"),
+                DBSystemSetting(key="enable_client_billing", value="true")
+            ]
+            db.add_all(sys_settings)
+            db.commit()
+            print("System Settings seeded successfully.")
 
     except Exception as e:
         db.rollback()
@@ -378,3 +391,43 @@ GROUNDING_CORPUS = {
         "source": "LexML - Código de Processo Civil"
     }
 }
+
+def get_db_system_settings() -> dict:
+    db = SessionLocal()
+    try:
+        settings_list = db.query(DBSystemSetting).all()
+        s_dict = {s.key: s.value for s in settings_list}
+        defaults = {
+            "global_budget": "15.0",
+            "enable_economic_routing": "false",
+            "enable_global_budget": "true",
+            "enable_client_billing": "true"
+        }
+        for k, v in defaults.items():
+            if k not in s_dict:
+                s_dict[k] = v
+        return s_dict
+    except Exception:
+        return {
+            "global_budget": "15.0",
+            "enable_economic_routing": "false",
+            "enable_global_budget": "true",
+            "enable_client_billing": "true"
+        }
+    finally:
+        db.close()
+
+def update_db_system_setting(key: str, value: str) -> None:
+    db = SessionLocal()
+    try:
+        setting = db.query(DBSystemSetting).filter(DBSystemSetting.key == key).first()
+        if setting:
+            setting.value = value
+        else:
+            db.add(DBSystemSetting(key=key, value=value))
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating system setting {key}: {e}")
+    finally:
+        db.close()

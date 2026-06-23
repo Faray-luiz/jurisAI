@@ -86,3 +86,11 @@ class DBGroundingDoc(Base):
     text = Column(Text, nullable=False)
     source = Column(String, nullable=False) # LexML - Código Civil
     is_active = Column(Boolean, default=True)
+
+
+class DBSystemSetting(Base):
+    __tablename__ = "system_settings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True, index=True, nullable=False)
+    value = Column(String, nullable=False)

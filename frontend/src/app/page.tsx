@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { 
   Send, ShieldAlert, DollarSign, Loader2, Sparkles, 
   Upload, FileText, CheckCircle, AlertTriangle, ShieldCheck, 
-  Search, Edit3, HelpCircle, Copy, Cpu
+  Search, Edit3, HelpCircle, Copy, Cpu, ChevronDown, ChevronRight, Download
 } from "lucide-react";
 
 import Sidebar from "@/components/Sidebar";
@@ -94,12 +94,28 @@ export default function Home() {
     total_cost: 0.0,
     cost_by_user: {},
     cost_by_agent: {},
+    cost_by_client: {},
     grounding_dist: {},
     user_count: 0
   });
 
+  const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({});
+
   const [providerStatuses, setProviderStatuses] = useState<any>(null);
   const [loadingStatuses, setLoadingStatuses] = useState<boolean>(false);
+
+  const [systemSettings, setSystemSettings] = useState<{
+    global_budget: number;
+    enable_economic_routing: boolean;
+    enable_global_budget: boolean;
+    enable_client_billing: boolean;
+  }>({
+    global_budget: 15.0,
+    enable_economic_routing: false,
+    enable_global_budget: true,
+    enable_client_billing: true
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -270,6 +286,113 @@ export default function Home() {
     }
   };
 
+  const fetchSystemSettings = async (email: string) => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/v1/admin/system-settings`, {
+        headers: { "Authorization": `Bearer ${email}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSystemSettings({
+          global_budget: parseFloat(data.global_budget || "15.0"),
+          enable_economic_routing: data.enable_economic_routing === "true",
+          enable_global_budget: data.enable_global_budget === "true",
+          enable_client_billing: data.enable_client_billing === "true"
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching system settings:", err);
+    }
+  };
+
+  const handleSaveSystemSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/v1/admin/system-settings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${currentUser.email}`
+        },
+        body: JSON.stringify(systemSettings)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast("Configurações gerais atualizadas com sucesso!");
+      } else {
+        showToast(`Erro: ${data.detail}`);
+      }
+    } catch (err) {
+      showToast("Erro ao conectar.");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const toggleClientExpand = (clientName: string) => {
+    setExpandedClients(prev => ({
+      ...prev,
+      [clientName]: !prev[clientName]
+    }));
+  };
+
+  const exportClientBillingCSV = (clientName: string, clientData: any) => {
+    const headers = ["Cliente", "Processo ID", "Processo Nome", "Numero Processo", "Consultas Realizadas", "Custo Total (USD)"];
+    const rows = clientData.processes.map((p: any) => [
+      clientName,
+      p.process_id,
+      p.title,
+      p.number,
+      p.queries,
+      p.cost.toFixed(6)
+    ]);
+    
+    rows.push([
+      clientName,
+      "TOTAL",
+      "-",
+      "-",
+      clientData.queries_count,
+      clientData.total_cost.toFixed(6)
+    ]);
+
+    const csvContent = [headers.join(","), ...rows.map((r: any) => r.map((val: any) => `"${val}"`).join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Faturamento_IA_${clientName.replace(/\s+/g, "_")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportAllClientsCSV = () => {
+    const headers = ["Cliente", "Consultas Realizadas", "Custo Total (USD)"];
+    const rows = Object.entries(adminMetrics.cost_by_client || {}).map(([clientName, data]: [string, any]) => [
+      clientName,
+      data.queries_count,
+      data.total_cost.toFixed(6)
+    ]);
+    
+    rows.push([
+      "TOTAL GERAL",
+      adminMetrics.total_queries,
+      adminMetrics.total_cost.toFixed(6)
+    ]);
+
+    const csvContent = [headers.join(","), ...rows.map((r: any) => r.map((val: any) => `"${val}"`).join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "Centro_Custos_IA_Consolidado.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Triggered when switching active tab
   useEffect(() => {
     if (activeTab === "auditoria" && currentUser) {
@@ -279,6 +402,7 @@ export default function Home() {
       fetchAdminMetrics(currentUser.email);
       if (currentUser.role === "Sócio") {
         fetchProviderStatuses(currentUser.email);
+        fetchSystemSettings(currentUser.email);
       }
     }
   }, [activeTab]);
@@ -1679,6 +1803,93 @@ export default function Home() {
                       </div>
                     </div>
 
+                    {currentUser?.role === "Sócio" && (
+                      <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "20px", marginBottom: "30px" }}>
+                        <h3 className="text-section" style={{ fontSize: "15px", marginBottom: "14px", color: "var(--bordo)" }}>Painel de Governança Orçamentária</h3>
+                        <form onSubmit={handleSaveSystemSettings} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                          <div style={{ display: "flex", gap: "24px", flexWrap: "wrap", alignItems: "flex-start" }}>
+                            
+                            {/* Budget Control Card/Column */}
+                            <div style={{ flex: "1 1 300px", padding: "16px", background: "rgba(139, 0, 0, 0.02)", borderRadius: "8px", border: "1px solid var(--line)" }}>
+                              <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", fontWeight: 600, cursor: "pointer", marginBottom: "12px", color: "var(--ink)" }}>
+                                <input
+                                  type="checkbox"
+                                  checked={systemSettings.enable_global_budget}
+                                  onChange={(e) => setSystemSettings(prev => ({ ...prev, enable_global_budget: e.target.checked }))}
+                                  style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                                />
+                                Ativar Trava Geral de Saldo (Fundo de Caixa)
+                              </label>
+                              
+                              <div style={{ opacity: systemSettings.enable_global_budget ? 1 : 0.5, transition: "opacity 0.2s" }}>
+                                <label className="text-label" style={{ display: "block", marginBottom: "6px", fontSize: "11px" }}>
+                                  Fundo de Caixa Global (USD)
+                                </label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  disabled={!systemSettings.enable_global_budget}
+                                  value={systemSettings.global_budget}
+                                  onChange={(e) => setSystemSettings(prev => ({ ...prev, global_budget: parseFloat(e.target.value) || 0 }))}
+                                  style={{
+                                    width: "100%",
+                                    padding: "9px",
+                                    borderRadius: "6px",
+                                    border: "1px solid var(--line)",
+                                    fontSize: "13px",
+                                    background: systemSettings.enable_global_budget ? "#fff" : "var(--bg)"
+                                  }}
+                                />
+                                <span style={{ fontSize: "10px", color: "var(--ink-faint)", marginTop: "6px", display: "block", lineHeight: "1.3" }}>
+                                  Bloqueia requisições se a soma dos gastos consolidada ultrapassar este teto, prevenindo estouros no saldo real das APIs.
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Additional Controls */}
+                            <div style={{ flex: "1.2 1 350px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                              <div style={{ padding: "16px", borderRadius: "8px", border: "1px solid var(--line)", background: "rgba(0, 0, 0, 0.01)" }}>
+                                <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", fontWeight: 600, cursor: "pointer", marginBottom: "4px", color: "var(--ink)" }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={systemSettings.enable_economic_routing}
+                                    onChange={(e) => setSystemSettings(prev => ({ ...prev, enable_economic_routing: e.target.checked }))}
+                                    style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                                  />
+                                  Ligar Roteamento Econômico Inteligente
+                                </label>
+                                <span style={{ fontSize: "10px", color: "var(--ink-faint)", display: "block", marginLeft: "28px", lineHeight: "1.3" }}>
+                                  Usuários com cota consumida &gt;= 80% serão migrados silenciosamente para modelos mais econômicos (Haiku / Flash).
+                                </span>
+                              </div>
+
+                              <div style={{ padding: "16px", borderRadius: "8px", border: "1px solid var(--line)", background: "rgba(0, 0, 0, 0.01)" }}>
+                                <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", fontWeight: 600, cursor: "pointer", marginBottom: "4px", color: "var(--ink)" }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={systemSettings.enable_client_billing}
+                                    onChange={(e) => setSystemSettings(prev => ({ ...prev, enable_client_billing: e.target.checked }))}
+                                    style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                                  />
+                                  Ativar Repasse de Custos por Cliente & Processo
+                                </label>
+                                <span style={{ fontSize: "10px", color: "var(--ink-faint)", display: "block", marginLeft: "28px", lineHeight: "1.3" }}>
+                                  Habilita o centro de custos por cliente e permite exportar relatórios de faturamento mensais detalhados.
+                                </span>
+                              </div>
+                            </div>
+
+                          </div>
+
+                          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "10px" }}>
+                            <button type="submit" className="btn" disabled={savingSettings} style={{ padding: "10px 32px" }}>
+                              {savingSettings ? <Loader2 size={13} className="spin" /> : "Salvar Governança"}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
+
                     <div style={{ display: "flex", gap: "20px", marginBottom: "30px" }}>
                       {/* Quotas management */}
                       <div style={{ flex: 1.5, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "20px" }}>
@@ -1800,6 +2011,129 @@ export default function Home() {
                         </div>
                       )}
                     </div>
+
+                    {/* Option 3: Centro de Custos por Cliente e Processo */}
+                    {systemSettings.enable_client_billing && (
+                      <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "20px", marginBottom: "30px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
+                          <div>
+                            <h3 className="text-section" style={{ fontSize: "15px", marginBottom: "4px", color: "var(--bordo)" }}>
+                              Centro de Custos & Repasse por Cliente (Fase 3)
+                            </h3>
+                            <p style={{ fontSize: "11.5px", color: "var(--ink-faint)", margin: 0 }}>
+                              Detalhamento de gastos com IA associados a processos de cada cliente para repasse ou controle de honorários.
+                            </p>
+                          </div>
+                          
+                          {Object.keys(adminMetrics.cost_by_client || {}).length > 0 && (
+                            <button
+                              onClick={exportAllClientsCSV}
+                              className="btn btn-outline"
+                              style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", fontSize: "12px" }}
+                            >
+                              <Download size={13} />
+                              Exportar Relatório Consolidado (CSV)
+                            </button>
+                          )}
+                        </div>
+
+                        {Object.keys(adminMetrics.cost_by_client || {}).length === 0 ? (
+                          <div style={{ padding: "30px", textAlign: "center", color: "var(--ink-faint)", fontSize: "13px" }}>
+                            Nenhum consumo registrado com processos vinculados até o momento.
+                          </div>
+                        ) : (
+                          <div style={{ overflowX: "auto" }}>
+                            <table className="admin-table" style={{ fontSize: "12px", width: "100%", borderCollapse: "collapse" }}>
+                              <thead>
+                                <tr style={{ borderBottom: "2px solid var(--line)" }}>
+                                  <th style={{ width: "40px" }}></th>
+                                  <th style={{ textAlign: "left", padding: "10px" }}>Cliente</th>
+                                  <th style={{ textAlign: "center", padding: "10px", width: "140px" }}>Consultas Realizadas</th>
+                                  <th style={{ textAlign: "right", padding: "10px", width: "160px" }}>Custo Consumido (USD)</th>
+                                  <th style={{ textAlign: "right", padding: "10px", width: "180px" }}>Ações</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {Object.entries(adminMetrics.cost_by_client).map(([clientName, clientData]: [string, any]) => {
+                                  const isExpanded = expandedClients[clientName];
+                                  return (
+                                    <React.Fragment key={clientName}>
+                                      {/* Main Client Row */}
+                                      <tr style={{ borderBottom: "1px solid var(--line)", background: isExpanded ? "rgba(0,0,0,0.01)" : "transparent" }}>
+                                        <td style={{ textAlign: "center", padding: "10px" }}>
+                                          <button
+                                            onClick={() => toggleClientExpand(clientName)}
+                                            style={{ background: "none", border: "none", color: "var(--ink-faint)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                                          >
+                                            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                          </button>
+                                        </td>
+                                        <td style={{ textAlign: "left", padding: "10px", fontWeight: 600, color: "var(--ink)" }}>
+                                          {clientName}
+                                        </td>
+                                        <td style={{ textAlign: "center", padding: "10px" }}>
+                                          {clientData.queries_count}
+                                        </td>
+                                        <td style={{ textAlign: "right", padding: "10px", fontWeight: 700, color: "var(--bordo)" }}>
+                                          ${clientData.total_cost.toFixed(6)} USD
+                                        </td>
+                                        <td style={{ textAlign: "right", padding: "10px" }}>
+                                          <button
+                                            onClick={() => exportClientBillingCSV(clientName, clientData)}
+                                            className="btn"
+                                            style={{ padding: "6px 12px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                                          >
+                                            <Download size={11} />
+                                            Faturar Cliente
+                                          </button>
+                                        </td>
+                                      </tr>
+
+                                      {/* Nested Process Details Row */}
+                                      {isExpanded && (
+                                        <tr>
+                                          <td colSpan={5} style={{ padding: "12px 24px", background: "rgba(0,0,0,0.02)" }}>
+                                            <div style={{ borderLeft: "3px solid var(--bordo)", paddingLeft: "16px" }}>
+                                              <h4 style={{ fontSize: "11.5px", fontWeight: 600, color: "var(--ink)", marginBottom: "8px" }}>
+                                                Detalhamento por Processo:
+                                              </h4>
+                                              <table style={{ width: "100%", fontSize: "11px", borderCollapse: "collapse" }}>
+                                                <thead>
+                                                  <tr style={{ color: "var(--ink-faint)", borderBottom: "1px solid var(--line)" }}>
+                                                    <th style={{ textAlign: "left", padding: "6px 0" }}>Processo ID</th>
+                                                    <th style={{ textAlign: "left", padding: "6px 0" }}>Título / Matéria</th>
+                                                    <th style={{ textAlign: "left", padding: "6px 0" }}>Número do Processo</th>
+                                                    <th style={{ textAlign: "center", padding: "6px 0", width: "100px" }}>Consultas</th>
+                                                    <th style={{ textAlign: "right", padding: "6px 0", width: "120px" }}>Custo</th>
+                                                  </tr>
+                                                </thead>
+                                                <tbody>
+                                                  {clientData.processes.map((proc: any) => (
+                                                    <tr key={proc.process_id} style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
+                                                      <td style={{ padding: "6px 0", fontWeight: 500 }}>{proc.process_id}</td>
+                                                      <td style={{ padding: "6px 0" }}>{proc.title}</td>
+                                                      <td style={{ padding: "6px 0" }}>{proc.number}</td>
+                                                      <td style={{ padding: "6px 0", textAlign: "center" }}>{proc.queries}</td>
+                                                      <td style={{ padding: "6px 0", textAlign: "right", fontWeight: 600, color: "var(--bordo)" }}>
+                                                        ${proc.cost.toFixed(6)} USD
+                                                      </td>
+                                                    </tr>
+                                                  ))}
+                                                </tbody>
+                                              </table>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      )}
+                                    </React.Fragment>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

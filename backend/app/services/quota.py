@@ -27,6 +27,25 @@ def verify_and_update_quota(user_email: str, estimated_cost: float) -> dict:
     if not user:
         return {"allowed": False, "message": "Usuário não encontrado.", "status": "error"}
         
+    # 1. Global Budget Check (Fundo de Caixa Global)
+    from backend.app.db.session import get_all_db_users, get_db_system_settings
+    sys_settings = get_db_system_settings()
+    enable_global_budget = sys_settings.get("enable_global_budget", "true").lower() == "true"
+    
+    if enable_global_budget:
+        global_budget = float(sys_settings.get("global_budget", "15.0"))
+        
+        # Calculate sum of all spent quotas
+        all_users = get_all_db_users()
+        total_spent = sum(u["quota_spent"] for u in all_users)
+        
+        if total_spent + estimated_cost > global_budget:
+            return {
+                "allowed": False,
+                "message": f"Bloqueio de Saldo Global: O custo estimado de ${estimated_cost:.4f} excede o caixa total disponível do escritório (${global_budget - total_spent:.4f}). Contate o Sócio.",
+                "status": "locked"
+            }
+        
     limit = user["quota_limit"]
     spent = user["quota_spent"]
     
