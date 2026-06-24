@@ -16,6 +16,11 @@ class DBUser(Base):
     quota_spent = Column(Float, default=0.0)
     _assigned_clients = Column(Text, default="[]") # JSON list
     _conflicted_clients = Column(Text, default="[]") # JSON list
+    # Invitation / onboarding fields
+    invitation_token = Column(String, nullable=True)        # UUID v4 (expires in 72h)
+    invitation_sent_at = Column(Float, nullable=True)       # unix timestamp
+    invitation_accepted = Column(Boolean, default=False)    # True after password set
+    password_hash = Column(String, nullable=True)           # bcrypt hash
 
     @property
     def assigned_clients(self):

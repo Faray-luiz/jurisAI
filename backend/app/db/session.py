@@ -34,8 +34,22 @@ with engine.connect() as conn:
         conn.execute(text("ALTER TABLE grounding_docs ADD COLUMN agent_task_type VARCHAR DEFAULT 'global'"))
         conn.commit()
     except Exception:
-        # Column already exists, ignore
         pass
+
+# Defensively add invitation / password columns to users table
+_user_migrations = [
+    "ALTER TABLE users ADD COLUMN invitation_token VARCHAR",
+    "ALTER TABLE users ADD COLUMN invitation_sent_at FLOAT",
+    "ALTER TABLE users ADD COLUMN invitation_accepted BOOLEAN DEFAULT 0",
+    "ALTER TABLE users ADD COLUMN password_hash VARCHAR",
+]
+with engine.connect() as conn:
+    for _sql in _user_migrations:
+        try:
+            conn.execute(text(_sql))
+            conn.commit()
+        except Exception:
+            pass  # Column already exists
 
 # Seed default built-in missions if table is empty
 _seed_db = SessionLocal()

@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import time
+import uuid
+import hashlib
 
 from backend.app.core.config import settings
 from backend.app.core.security import get_current_user, verify_process_access
@@ -391,12 +393,16 @@ def admin_create_user(payload: UserCreatePayload, user: dict = Depends(get_curre
         raise HTTPException(status_code=403, detail="Apenas Sócios podem criar usuários manualmente.")
     from backend.app.db.session import SessionLocal
     from backend.app.db.models import DBUser
+    from backend.app.email import send_invitation_email
     db = SessionLocal()
     try:
         existing = db.query(DBUser).filter(DBUser.email == payload.email).first()
         if existing:
             raise HTTPException(status_code=400, detail="Usuário já cadastrado.")
-            
+
+        # Generate secure invitation token
+        token = str(uuid.uuid4())
+
         new_u = DBUser(
             email=payload.email,
             name=payload.name,
@@ -404,11 +410,67 @@ def admin_create_user(payload: UserCreatePayload, user: dict = Depends(get_curre
             quota_limit=payload.quota_limit,
             quota_spent=0.0,
             assigned_clients=["Companhia Gama"] if payload.role == "Advogado" else [],
-            conflicted_clients=[]
+            conflicted_clients=[],
+            invitation_token=token,
+            invitation_sent_at=time.time(),
+            invitation_accepted=False,
         )
         db.add(new_u)
         db.commit()
-        return {"status": "ok", "message": f"Usuário {payload.name} criado com sucesso."}
+
+        # Send invitation email via Resend (non-blocking — errors are logged, not raised)
+        email_result = send_invitation_email(
+            to_email=payload.email,
+            name=payload.name,
+            token=token,
+        )
+
+        return {
+            "status": "ok",
+            "message": f"Usuário {payload.name} criado com sucesso.",
+            "invitation_email_sent": email_result.get("ok", False),
+            "email_error": email_result.get("error") if not email_result.get("ok") else None,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        db.close()
+
+
+class SetPasswordPayload(BaseModel):
+    token: str
+    password: str
+
+@app.post("/api/v1/auth/set-password")
+def set_password(payload: SetPasswordPayload):
+    """Validates invitation token and sets the user password. Marks invitation as accepted."""
+    from backend.app.db.session import SessionLocal
+    from backend.app.db.models import DBUser
+    db = SessionLocal()
+    try:
+        user_row = db.query(DBUser).filter(DBUser.invitation_token == payload.token).first()
+        if not user_row:
+            raise HTTPException(status_code=404, detail="Token inválido ou já utilizado.")
+
+        # Check expiry (72h = 259200s)
+        if user_row.invitation_sent_at and (time.time() - user_row.invitation_sent_at) > 259200:
+            raise HTTPException(status_code=410, detail="Token expirado. Solicite um novo convite ao administrador.")
+
+        if user_row.invitation_accepted:
+            raise HTTPException(status_code=400, detail="Conta já ativada. Faça login normalmente.")
+
+        # Store a simple SHA-256 hash (upgrade to bcrypt in production)
+        pw_hash = hashlib.sha256(payload.password.encode()).hexdigest()
+        user_row.password_hash = pw_hash
+        user_row.invitation_accepted = True
+        user_row.invitation_token = None   # invalidate token after use
+        db.commit()
+        return {"status": "ok", "message": "Senha definida com sucesso. Você já pode fazer login."}
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))

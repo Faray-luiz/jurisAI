@@ -55,7 +55,7 @@ export default function Home() {
   const [quotaEditLimit, setQuotaEditLimit] = useState<number>(50);
   const [quotaUpdating, setQuotaUpdating] = useState(false);
 
-  const [adminSubTab, setAdminSubTab] = useState<"logs" | "modelos" | "rag" | "usuarios" | "missoes">("logs");
+  const [adminSubTab, setAdminSubTab] = useState<"logs" | "modelos" | "rag" | "custos" | "usuarios" | "missoes">("logs");
   
   // Missions States
   const [missions, setMissions] = useState<any[]>([]);
@@ -1530,7 +1530,8 @@ export default function Home() {
                   {adminSubTab === "logs" && "Auditoria & Muralha Ética"}
                   {adminSubTab === "modelos" && "Modelos & System Prompts"}
                   {adminSubTab === "rag" && "Base RAG Jurídica"}
-                  {adminSubTab === "usuarios" && "Custos & Usuários"}
+                  {adminSubTab === "custos" && "Custos & Orçamento"}
+                  {adminSubTab === "usuarios" && "Usuários & Acesso"}
                   {adminSubTab === "missoes" && "Gestão de Missões"}
                 </h1>
                 <p className="text-lede" style={{ marginBottom: "24px" }}>
@@ -2040,7 +2041,7 @@ export default function Home() {
                 })()}
 
 
-                {adminSubTab === "usuarios" && (
+                {adminSubTab === "custos" && (
                   <div>
                     {/* Metrics Dashboard */}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "30px" }}>
@@ -2241,129 +2242,7 @@ export default function Home() {
                       </div>
                     )}
 
-                    <div style={{ display: "flex", gap: "20px", marginBottom: "30px" }}>
-                      {/* Quotas management */}
-                      <div style={{ flex: 1.5, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "20px" }}>
-                        <h3 className="text-section" style={{ fontSize: "15px", marginBottom: "14px" }}>Definir Limites Orçamentários</h3>
-                        <form onSubmit={handleUpdateQuota} style={{ display: "flex", gap: "12px", alignItems: "flex-end", marginBottom: "20px" }}>
-                          <div style={{ flex: 1 }}>
-                            <label className="text-label" style={{ display: "block", marginBottom: "6px", fontSize: "11px" }}>Advogado</label>
-                            <select
-                              value={quotaEditEmail}
-                              onChange={(e) => setQuotaEditEmail(e.target.value)}
-                              style={{
-                                width: "100%",
-                                padding: "9px",
-                                borderRadius: "6px",
-                                border: "1px solid var(--line)",
-                                fontSize: "13px",
-                                background: "#fff"
-                              }}
-                            >
-                              <option value="">Selecione...</option>
-                              {usersList.map(u => (
-                                <option key={u.email} value={u.email}>{u.name} ({u.role})</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div style={{ width: "120px" }}>
-                            <label className="text-label" style={{ display: "block", marginBottom: "6px", fontSize: "11px" }}>Limite (USD)</label>
-                            <input
-                              type="number"
-                              value={quotaEditLimit}
-                              onChange={(e) => setQuotaEditLimit(parseFloat(e.target.value))}
-                              style={{
-                                width: "100%",
-                                padding: "9px",
-                                borderRadius: "6px",
-                                border: "1px solid var(--line)",
-                                fontSize: "13px"
-                              }}
-                            />
-                          </div>
-
-                          <button type="submit" className="btn" disabled={quotaUpdating}>
-                            {quotaUpdating ? <Loader2 size={13} className="spin" /> : "Atualizar"}
-                          </button>
-                        </form>
-
-                        {/* Cost list by user */}
-                        <h4 style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--ink)", marginBottom: "8px" }}>Consumo Histórico por Conta</h4>
-                        <table className="admin-table" style={{ fontSize: "11.5px" }}>
-                          <thead>
-                            <tr>
-                              <th>Conta / Usuário</th>
-                              <th>Consumo Total</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {Object.entries(adminMetrics.cost_by_user || {}).map(([email, cost]: any) => (
-                              <tr key={email}>
-                                <td>{email}</td>
-                                <td style={{ fontWeight: 600 }}>${cost.toFixed(4)} USD</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* Manual user creation (Sócio only) */}
-                      {currentUser?.role === "Sócio" && (
-                        <div style={{ flex: 1, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "20px" }}>
-                          <h3 className="text-section" style={{ fontSize: "15px", marginBottom: "14px" }}>Cadastrar Novo Usuário (RBAC)</h3>
-                          <form onSubmit={handleCreateUser} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                            <div>
-                              <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Nome Completo</label>
-                              <input
-                                type="text"
-                                value={userForm.name}
-                                onChange={(e) => setUserForm(prev => ({ ...prev, name: e.target.value }))}
-                                placeholder="Ex: Rodrigo Mendes"
-                                style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px" }}
-                              />
-                            </div>
-                            <div>
-                              <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Email Corporativo</label>
-                              <input
-                                type="email"
-                                value={userForm.email}
-                                onChange={(e) => setUserForm(prev => ({ ...prev, email: e.target.value }))}
-                                placeholder="exemplo@jurisai.com.br"
-                                style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px" }}
-                              />
-                            </div>
-                            <div>
-                              <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Papel (Cargo)</label>
-                              <select
-                                value={userForm.role}
-                                onChange={(e) => setUserForm(prev => ({ ...prev, role: e.target.value }))}
-                                style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px", background: "#fff" }}
-                              >
-                                <option value="Advogado">Advogado</option>
-                                <option value="Sócio">Sócio</option>
-                                <option value="Compliance">Compliance</option>
-                                <option value="TI">TI</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Cota Mensal Inicial (USD)</label>
-                              <input
-                                type="number"
-                                value={userForm.quota_limit}
-                                onChange={(e) => setUserForm(prev => ({ ...prev, quota_limit: parseFloat(e.target.value) }))}
-                                style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px" }}
-                              />
-                            </div>
-                            <button type="submit" className="btn" disabled={userSaving} style={{ padding: "8px 16px", marginTop: "4px" }}>
-                              {userSaving ? <Loader2 size={13} className="spin" /> : "Criar Usuário"}
-                            </button>
-                          </form>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Option 3: Centro de Custos por Cliente e Processo */}
+                    {/* Centro de Custos por Cliente e Processo */}
                     {systemSettings.enable_client_billing && (
                       <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "20px", marginBottom: "30px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
@@ -2485,6 +2364,131 @@ export default function Home() {
                         )}
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* ======= USUARIOS & ACESSO (Sócio only) ======= */}
+                {adminSubTab === "usuarios" && (
+                  <div>
+                    {/* Users table */}
+                    <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "20px", marginBottom: "24px" }}>
+                      <h3 className="text-section" style={{ fontSize: "15px", marginBottom: "14px" }}>Membros da Equipe</h3>
+                      <table className="admin-table" style={{ fontSize: "12px" }}>
+                        <thead>
+                          <tr>
+                            <th>Nome</th>
+                            <th>Email</th>
+                            <th>Cargo</th>
+                            <th style={{ textAlign: "right" }}>Cota Usada</th>
+                            <th style={{ textAlign: "center" }}>Acesso</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {usersList.map((u: any) => (
+                            <tr key={u.email}>
+                              <td style={{ fontWeight: 600 }}>{u.name}</td>
+                              <td style={{ color: "var(--ink-faint)" }}>{u.email}</td>
+                              <td>
+                                <span style={{ background: "rgba(122,46,46,0.08)", color: "var(--bordo)", borderRadius: "4px", padding: "2px 8px", fontSize: "11px", fontWeight: 600 }}>
+                                  {u.role}
+                                </span>
+                              </td>
+                              <td style={{ textAlign: "right", fontWeight: 600 }}>
+                                ${(u.quota_spent ?? 0).toFixed(4)} / ${(u.quota_limit ?? 0).toFixed(2)}
+                              </td>
+                              <td style={{ textAlign: "center" }}>
+                                {u.invitation_accepted
+                                  ? <span style={{ color: "var(--verde)", fontSize: "12px", fontWeight: 600 }}>✅ Ativo</span>
+                                  : u.invitation_sent_at
+                                  ? <span style={{ color: "#e2a000", fontSize: "12px", fontWeight: 600 }}>✉️ Convite pendente</span>
+                                  : <span style={{ color: "var(--ink-faint)", fontSize: "12px" }}>— Sem convite</span>
+                                }
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+                      {/* Quotas management */}
+                      <div style={{ flex: 1.5, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "20px" }}>
+                        <h3 className="text-section" style={{ fontSize: "15px", marginBottom: "14px" }}>Definir Limites Orçamentários</h3>
+                        <form onSubmit={handleUpdateQuota} style={{ display: "flex", gap: "12px", alignItems: "flex-end", marginBottom: "20px" }}>
+                          <div style={{ flex: 1 }}>
+                            <label className="text-label" style={{ display: "block", marginBottom: "6px", fontSize: "11px" }}>Advogado</label>
+                            <select
+                              value={quotaEditEmail}
+                              onChange={(e) => setQuotaEditEmail(e.target.value)}
+                              style={{ width: "100%", padding: "9px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "13px", background: "#fff" }}
+                            >
+                              <option value="">Selecione...</option>
+                              {usersList.map(u => (
+                                <option key={u.email} value={u.email}>{u.name} ({u.role})</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div style={{ width: "120px" }}>
+                            <label className="text-label" style={{ display: "block", marginBottom: "6px", fontSize: "11px" }}>Limite (USD)</label>
+                            <input
+                              type="number"
+                              value={quotaEditLimit}
+                              onChange={(e) => setQuotaEditLimit(parseFloat(e.target.value))}
+                              style={{ width: "100%", padding: "9px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "13px" }}
+                            />
+                          </div>
+                          <button type="submit" className="btn" disabled={quotaUpdating}>
+                            {quotaUpdating ? <Loader2 size={13} className="spin" /> : "Atualizar"}
+                          </button>
+                        </form>
+                        {/* Cost list by user */}
+                        <h4 style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--ink)", marginBottom: "8px" }}>Consumo Histórico por Conta</h4>
+                        <table className="admin-table" style={{ fontSize: "11.5px" }}>
+                          <thead><tr><th>Conta / Usuário</th><th>Consumo Total</th></tr></thead>
+                          <tbody>
+                            {Object.entries(adminMetrics.cost_by_user || {}).map(([email, cost]: any) => (
+                              <tr key={email}><td>{email}</td><td style={{ fontWeight: 600 }}>${cost.toFixed(4)} USD</td></tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Invite new user (Sócio only) */}
+                      {currentUser?.role === "Sócio" && (
+                        <div style={{ flex: 1, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "20px" }}>
+                          <h3 className="text-section" style={{ fontSize: "15px", marginBottom: "4px" }}>Convidar Novo Usuário</h3>
+                          <p style={{ fontSize: "11px", color: "var(--ink-faint)", marginBottom: "14px", lineHeight: "1.4" }}>
+                            Um email de ativação será enviado automaticamente via Resend.
+                          </p>
+                          <form onSubmit={handleCreateUser} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                            <div>
+                              <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Nome Completo</label>
+                              <input type="text" value={userForm.name} onChange={(e) => setUserForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Ex: Rodrigo Mendes" style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px" }} />
+                            </div>
+                            <div>
+                              <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Email Corporativo</label>
+                              <input type="email" value={userForm.email} onChange={(e) => setUserForm(prev => ({ ...prev, email: e.target.value }))} placeholder="exemplo@jurisai.com.br" style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px" }} />
+                            </div>
+                            <div>
+                              <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Papel (Cargo)</label>
+                              <select value={userForm.role} onChange={(e) => setUserForm(prev => ({ ...prev, role: e.target.value }))} style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px", background: "#fff" }}>
+                                <option value="Advogado">Advogado</option>
+                                <option value="Sócio">Sócio</option>
+                                <option value="Compliance">Compliance</option>
+                                <option value="TI">TI</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="text-label" style={{ display: "block", marginBottom: "4px", fontSize: "11px" }}>Cota Mensal Inicial (USD)</label>
+                              <input type="number" value={userForm.quota_limit} onChange={(e) => setUserForm(prev => ({ ...prev, quota_limit: parseFloat(e.target.value) }))} style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: "12.5px" }} />
+                            </div>
+                            <button type="submit" className="btn" disabled={userSaving} style={{ padding: "8px 16px", marginTop: "4px" }}>
+                              {userSaving ? <Loader2 size={13} className="spin" /> : "✉️ Convidar Usuário"}
+                            </button>
+                          </form>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 
