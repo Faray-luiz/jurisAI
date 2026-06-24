@@ -1007,22 +1007,33 @@ export default function Home() {
         },
         body: JSON.stringify(userForm)
       });
-      const data = await res.json();
+      
+      let data: any = {};
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        data = { detail: text || `HTTP ${res.status} ${res.statusText}` };
+      }
+
       if (res.ok) {
-        showToast(data.message);
+        showToast(data.message || "Usuário convidado com sucesso!");
         setUserForm({ email: "", name: "", role: "Advogado", quota_limit: 50 });
         // refresh list
         const allUsersRes = await fetch(`${BACKEND_URL}/api/v1/admin/users`, {
           headers: { "Authorization": `Bearer ${currentUser.email}` }
         });
         if (allUsersRes.ok) {
-          setUsersList(await allUsersRes.json());
+          try {
+            setUsersList(await allUsersRes.json());
+          } catch (e) {}
         }
       } else {
-        showToast(`Erro: ${data.detail}`);
+        showToast(`Erro: ${data.detail || "Falha ao processar requisição"}`);
       }
-    } catch (err) {
-      showToast("Erro ao conectar.");
+    } catch (err: any) {
+      showToast(`Erro ao conectar: ${err.message || err}`);
     } finally {
       setUserSaving(false);
     }
