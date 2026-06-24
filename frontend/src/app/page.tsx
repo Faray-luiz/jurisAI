@@ -535,6 +535,15 @@ export default function Home() {
       if (adminSubTab === "missoes" && currentUser.role === "Sócio") {
         fetchAdminMissions(currentUser.email);
       }
+      if (adminSubTab === "modelos" && agentConfigs.length > 0 && !selectedAgentConfig) {
+        setSelectedAgentConfig(agentConfigs[0]);
+        setAgentForm({
+          provider: agentConfigs[0].provider,
+          model: agentConfigs[0].model,
+          temperature: agentConfigs[0].temperature,
+          system_prompt: agentConfigs[0].system_prompt
+        });
+      }
     }
   }, [adminSubTab]);
 
@@ -1249,6 +1258,8 @@ export default function Home() {
       <Sidebar 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
+        adminSubTab={adminSubTab}
+        setAdminSubTab={setAdminSubTab}
         currentUser={currentUser}
         usersList={usersList}
         onUserChange={handleUserChange}
@@ -1514,107 +1525,17 @@ export default function Home() {
             ) : (
               /* ================== ADMIN / AUDIT VIEW ================== */
               <div>
-                <h1 className="text-title" style={{ marginBottom: "8px" }}>Governança & Controle de IA</h1>
-                <p className="text-lede" style={{ marginBottom: "20px" }}>
-                  Painel centralizado de auditoria, limites de cotas orçamentárias, controle de System Prompts e RAG jurídico.
+                {/* Section title — reflects active subtab */}
+                <h1 className="text-title" style={{ marginBottom: "8px" }}>
+                  {adminSubTab === "logs" && "Auditoria & Muralha Ética"}
+                  {adminSubTab === "modelos" && "Modelos & System Prompts"}
+                  {adminSubTab === "rag" && "Base RAG Jurídica"}
+                  {adminSubTab === "usuarios" && "Custos & Usuários"}
+                  {adminSubTab === "missoes" && "Gestão de Missões"}
+                </h1>
+                <p className="text-lede" style={{ marginBottom: "24px" }}>
+                  Governança centralizada de IA — auditoria, cotas, modelos, RAG e missões.
                 </p>
-
-                {/* Subnav */}
-                <div style={{ display: "flex", gap: "8px", borderBottom: "1px solid var(--line)", paddingBottom: "8px", marginBottom: "24px" }}>
-                  <button 
-                    type="button"
-                    onClick={() => setAdminSubTab("logs")}
-                    style={{
-                      background: adminSubTab === "logs" ? "var(--bordo)" : "transparent",
-                      color: adminSubTab === "logs" ? "#fff" : "var(--ink)",
-                      border: "1px solid " + (adminSubTab === "logs" ? "var(--bordo)" : "var(--line)"),
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      padding: "6px 14px",
-                      cursor: "pointer"
-                    }}
-                  >
-                    Auditoria & Muralha
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      setAdminSubTab("modelos");
-                      if (agentConfigs.length > 0 && !selectedAgentConfig) {
-                        setSelectedAgentConfig(agentConfigs[0]);
-                        setAgentForm({
-                          provider: agentConfigs[0].provider,
-                          model: agentConfigs[0].model,
-                          temperature: agentConfigs[0].temperature,
-                          system_prompt: agentConfigs[0].system_prompt
-                        });
-                      }
-                    }}
-                    style={{
-                      background: adminSubTab === "modelos" ? "var(--bordo)" : "transparent",
-                      color: adminSubTab === "modelos" ? "#fff" : "var(--ink)",
-                      border: "1px solid " + (adminSubTab === "modelos" ? "var(--bordo)" : "var(--line)"),
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      padding: "6px 14px",
-                      cursor: "pointer"
-                    }}
-                  >
-                    Modelos & Prompts
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => setAdminSubTab("rag")}
-                    style={{
-                      background: adminSubTab === "rag" ? "var(--bordo)" : "transparent",
-                      color: adminSubTab === "rag" ? "#fff" : "var(--ink)",
-                      border: "1px solid " + (adminSubTab === "rag" ? "var(--bordo)" : "var(--line)"),
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      padding: "6px 14px",
-                      cursor: "pointer"
-                    }}
-                  >
-                    Base RAG (Leis)
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => setAdminSubTab("usuarios")}
-                    style={{
-                      background: adminSubTab === "usuarios" ? "var(--bordo)" : "transparent",
-                      color: adminSubTab === "usuarios" ? "#fff" : "var(--ink)",
-                      border: "1px solid " + (adminSubTab === "usuarios" ? "var(--bordo)" : "var(--line)"),
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      padding: "6px 14px",
-                      cursor: "pointer"
-                    }}
-                  >
-                    Custos & Usuários
-                  </button>
-                  {currentUser?.role === "Sócio" && (
-                    <button
-                      type="button"
-                      onClick={() => setAdminSubTab("missoes")}
-                      style={{
-                        background: adminSubTab === "missoes" ? "var(--bordo)" : "transparent",
-                        color: adminSubTab === "missoes" ? "#fff" : "var(--ink)",
-                        border: "1px solid " + (adminSubTab === "missoes" ? "var(--bordo)" : "var(--line)"),
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        padding: "6px 14px",
-                        cursor: "pointer"
-                      }}
-                    >
-                      🎯 Missões
-                    </button>
-                  )}
-                </div>
 
                 {/* Subtab Contents */}
                 {adminSubTab === "logs" && (
