@@ -43,13 +43,13 @@ _user_migrations = [
     "ALTER TABLE users ADD COLUMN invitation_accepted BOOLEAN DEFAULT FALSE",
     "ALTER TABLE users ADD COLUMN password_hash VARCHAR",
 ]
-with engine.connect() as conn:
-    for _sql in _user_migrations:
-        try:
+for _sql in _user_migrations:
+    try:
+        with engine.connect() as conn:
             conn.execute(text(_sql))
             conn.commit()
-        except Exception:
-            pass  # Column already exists
+    except Exception:
+        pass  # Column already exists
 
 # Seed default built-in missions if table is empty
 _seed_db = SessionLocal()
