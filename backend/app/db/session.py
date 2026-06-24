@@ -40,7 +40,7 @@ with engine.connect() as conn:
 _user_migrations = [
     "ALTER TABLE users ADD COLUMN invitation_token VARCHAR",
     "ALTER TABLE users ADD COLUMN invitation_sent_at FLOAT",
-    "ALTER TABLE users ADD COLUMN invitation_accepted BOOLEAN DEFAULT 0",
+    "ALTER TABLE users ADD COLUMN invitation_accepted BOOLEAN DEFAULT FALSE",
     "ALTER TABLE users ADD COLUMN password_hash VARCHAR",
 ]
 with engine.connect() as conn:
