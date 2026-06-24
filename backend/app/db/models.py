@@ -96,3 +96,16 @@ class DBSystemSetting(Base):
     id = Column(Integer, primary_key=True, index=True)
     key = Column(String, unique=True, index=True, nullable=False)
     value = Column(String, nullable=False)
+
+
+class DBMission(Base):
+    __tablename__ = "missions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    task_type = Column(String, unique=True, index=True, nullable=False)  # slug, ex: contrato_revisao
+    display_name = Column(String, nullable=False)                         # ex: Revisão de Contratos
+    icon = Column(String, nullable=False, default="⚖️")                 # emoji
+    description = Column(String, nullable=False, default="")             # subtexto do card
+    default_prompt = Column(Text, nullable=False, default="")            # prompt pré-preenchido ao clicar
+    is_active = Column(Boolean, default=True)
+    created_at = Column(Float, default=time.time)

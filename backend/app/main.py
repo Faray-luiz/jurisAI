@@ -642,3 +642,124 @@ def get_provider_status(user: dict = Depends(get_current_user)):
     return status
 
 
+# ─── Missions ────────────────────────────────────────────────────────────────
+
+class MissionCreatePayload(BaseModel):
+    task_type: str
+    display_name: str
+    icon: str = "⚖️"
+    description: str = ""
+    default_prompt: str = ""
+    system_prompt: str = ""
+    provider: str = "openai"
+    model: str = "gpt-4o-mini"
+    temperature: float = 0.0
+    is_active: bool = True
+
+
+@app.get("/api/v1/missions")
+def get_active_missions(user: dict = Depends(get_current_user)):
+    """Returns active missions visible to all authenticated users (lawyers)."""
+    from backend.app.db.session import SessionLocal
+    from backend.app.db.models import DBMission
+    db = SessionLocal()
+    try:
+        missions = db.query(DBMission).filter(DBMission.is_active == True).order_by(DBMission.id).all()
+        return [{
+            "id": m.id,
+            "task_type": m.task_type,
+            "display_name": m.display_name,
+            "icon": m.icon,
+            "description": m.description,
+            "default_prompt": m.default_prompt,
+        } for m in missions]
+    finally:
+        db.close()
+
+
+@app.get("/api/v1/admin/missions")
+def get_all_missions(user: dict = Depends(get_current_user)):
+    """Returns ALL missions (active and inactive) for admin management."""
+    if user["role"] not in ["Sócio"]:
+        raise HTTPException(status_code=403, detail="Apenas Sócios podem gerenciar missões.")
+    from backend.app.db.session import SessionLocal
+    from backend.app.db.models import DBMission
+    db = SessionLocal()
+    try:
+        missions = db.query(DBMission).order_by(DBMission.id).all()
+        return [{
+            "id": m.id,
+            "task_type": m.task_type,
+            "display_name": m.display_name,
+            "icon": m.icon,
+            "description": m.description,
+            "default_prompt": m.default_prompt,
+            "is_active": m.is_active,
+            "created_at": m.created_at,
+        } for m in missions]
+    finally:
+        db.close()
+
+
+@app.post("/api/v1/admin/missions")
+def upsert_mission(payload: MissionCreatePayload, user: dict = Depends(get_current_user)):
+    """Creates or updates a mission and its matching AgentConfig."""
+    if user["role"] not in ["Sócio"]:
+        raise HTTPException(status_code=403, detail="Apenas Sócios podem criar ou editar missões.")
+    from backend.app.db.session import SessionLocal
+    from backend.app.db.models import DBMission, DBAgentConfig
+    db = SessionLocal()
+    try:
+        # Upsert mission
+        mission = db.query(DBMission).filter(DBMission.task_type == payload.task_type).first()
+        is_new = mission is None
+        if is_new:
+            mission = DBMission(task_type=payload.task_type, created_at=time.time())
+            db.add(mission)
+
+        mission.display_name = payload.display_name
+        mission.icon = payload.icon
+        mission.description = payload.description
+        mission.default_prompt = payload.default_prompt
+        mission.is_active = payload.is_active
+
+        # Upsert matching AgentConfig
+        cfg = db.query(DBAgentConfig).filter(DBAgentConfig.task_type == payload.task_type).first()
+        if not cfg:
+            cfg = DBAgentConfig(task_type=payload.task_type)
+            db.add(cfg)
+        cfg.provider = payload.provider
+        cfg.model = payload.model
+        cfg.temperature = payload.temperature
+        cfg.system_prompt = payload.system_prompt or f"Você é um assistente jurídico especializado em: {payload.display_name}."
+
+        db.commit()
+        action = "criada" if is_new else "atualizada"
+        return {"status": "ok", "message": f"Missão '{payload.display_name}' {action} com sucesso."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        db.close()
+
+
+@app.delete("/api/v1/admin/missions/{mission_id}")
+def delete_mission(mission_id: int, user: dict = Depends(get_current_user)):
+    """Deletes a mission by ID."""
+    if user["role"] not in ["Sócio"]:
+        raise HTTPException(status_code=403, detail="Apenas Sócios podem excluir missões.")
+    from backend.app.db.session import SessionLocal
+    from backend.app.db.models import DBMission
+    db = SessionLocal()
+    try:
+        mission = db.query(DBMission).filter(DBMission.id == mission_id).first()
+        if not mission:
+            raise HTTPException(status_code=404, detail="Missão não encontrada.")
+        db.delete(mission)
+        db.commit()
+        return {"status": "ok", "message": f"Missão '{mission.display_name}' excluída com sucesso."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        db.close()

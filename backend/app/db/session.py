@@ -2,7 +2,7 @@ import time
 import json
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-from backend.app.db.models import Base, DBUser, DBProcess, DBAuditLog, DBAgentConfig, DBGroundingDoc, DBSystemSetting
+from backend.app.db.models import Base, DBUser, DBProcess, DBAuditLog, DBAgentConfig, DBGroundingDoc, DBSystemSetting, DBMission
 from backend.app.core.config import settings
 import os
 
@@ -36,6 +36,37 @@ with engine.connect() as conn:
     except Exception:
         # Column already exists, ignore
         pass
+
+# Seed default built-in missions if table is empty
+_seed_db = SessionLocal()
+try:
+    if _seed_db.query(DBMission).count() == 0:
+        import time as _time
+        _seed_db.add_all([
+            DBMission(
+                task_type="analise_peticao",
+                display_name="Análise de Petição Inicial",
+                icon="📄",
+                description="Analisa o PDF de uma petição adversária e sanitiza tentativas de injection instrução-dado.",
+                default_prompt="Faça a análise completa da petição inicial em anexo. Identifique fundamentações e a adequação legal.",
+                is_active=True,
+                created_at=_time.time()
+            ),
+            DBMission(
+                task_type="rascunho_recurso",
+                display_name="Rascunho de Recurso",
+                icon="✍️",
+                description="Redige minuta de apelação sob o CPC e avalia síncronamente grounding de citações.",
+                default_prompt="Elabore o rascunho de recurso contra a sentença desfavorável. Aplique a correta atribuição do ônus processual.",
+                is_active=True,
+                created_at=_time.time()
+            ),
+        ])
+        _seed_db.commit()
+except Exception:
+    _seed_db.rollback()
+finally:
+    _seed_db.close()
 
 
 # Helper: DB model to dictionary translation
