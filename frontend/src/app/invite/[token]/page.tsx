@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, ShieldCheck, Eye, EyeOff } from "lucide-react";
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 export default function InvitePage() {
   const params = useParams();
   const router = useRouter();
@@ -31,7 +33,7 @@ export default function InvitePage() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/v1/auth/set-password", {
+      const res = await fetch(`${BACKEND_URL}/api/v1/auth/set-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, password }),
