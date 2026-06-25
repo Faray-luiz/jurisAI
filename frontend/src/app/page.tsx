@@ -27,6 +27,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<"chat" | "auditoria">("chat");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
   const [usersList, setUsersList] = useState<any[]>([]);
@@ -243,9 +244,32 @@ export default function Home() {
     setLoginLoading(true);
     setLoginError(null);
     try {
-      const success = await fetchUserData(loginEmail);
-      if (!success) {
-        setLoginError("Acesso negado: Este e-mail não possui cadastro ativo. Solicite acesso a um Sócio do escritório.");
+      // Authenticate with backend first
+      const res = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword })
+      });
+
+      let data: any = {};
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        data = { detail: text || `HTTP ${res.status} ${res.statusText}` };
+      }
+
+      if (res.ok) {
+        localStorage.setItem("auth_email", loginEmail);
+        const success = await fetchUserData(loginEmail);
+        if (!success) {
+          setLoginError("Erro ao carregar dados do usuário.");
+        } else {
+          setLoginPassword(""); // clear password field
+        }
+      } else {
+        setLoginError(data.detail || "Erro ao realizar login.");
       }
     } catch (err: any) {
       setLoginError("Erro de conexão. Verifique se o servidor backend está online.");
@@ -1195,6 +1219,29 @@ export default function Home() {
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
                 placeholder="seu.nome@jurisai.com.br"
+                style={{ 
+                  width: "100%", 
+                  padding: "10px", 
+                  borderRadius: "9px", 
+                  border: "1px solid var(--line)", 
+                  fontSize: "13.5px",
+                  outline: "none"
+                }}
+              />
+            </div>
+
+            <div>
+              <label 
+                className="text-label" 
+                style={{ display: "block", marginBottom: "6px", fontSize: "11px" }}
+              >
+                Senha de Acesso
+              </label>
+              <input 
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                placeholder="Sua senha segura (deixe em branco se for simulado)"
                 style={{ 
                   width: "100%", 
                   padding: "10px", 

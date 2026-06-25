@@ -440,6 +440,40 @@ def admin_create_user(payload: UserCreatePayload, user: dict = Depends(get_curre
         db.close()
 
 
+class LoginPayload(BaseModel):
+    email: str
+    password: str
+
+@app.post("/api/v1/auth/login")
+def login(payload: LoginPayload):
+    """Authenticates user with email and password."""
+    from backend.app.db.session import SessionLocal
+    from backend.app.db.models import DBUser
+    db = SessionLocal()
+    try:
+        user = db.query(DBUser).filter(DBUser.email == payload.email).first()
+        if not user:
+            raise HTTPException(status_code=401, detail="Usuário não cadastrado.")
+
+        # If the user has a password set, verify it
+        if user.password_hash:
+            if not payload.password:
+                raise HTTPException(status_code=401, detail="Esta conta requer uma senha para acessar.")
+            input_hash = hashlib.sha256(payload.password.encode()).hexdigest()
+            if user.password_hash != input_hash:
+                raise HTTPException(status_code=401, detail="Senha incorreta.")
+        
+        return {
+            "email": user.email,
+            "name": user.name,
+            "role": user.role,
+            "quota_limit": user.quota_limit,
+            "quota_spent": user.quota_spent,
+            "assigned_clients": user.assigned_clients
+        }
+    finally:
+        db.close()
+
 class SetPasswordPayload(BaseModel):
     token: str
     password: str
