@@ -260,6 +260,54 @@ def run_tests():
     assert "response" in chat_json
     print("Chat com Referência Segura de Documento (ID) OK!")
     
+    # 7. Test LexML & Resilience (Phase 2)
+    print("\n7. Testando LexML e Resiliência (Fase 2)...")
+    
+    # A. Test LexML Connector
+    from backend.app.services.lexml import search_lexml_legislation
+    lexml_res = search_lexml_legislation("Art. 186 do Código Civil")
+    print(f"LexML Search result: {lexml_res}")
+    if lexml_res:
+        assert "186" in lexml_res["text"]
+        assert "Código Civil" in lexml_res["citation"]
+        
+    # B. Test verify_citations fallback to LexML and caching in database
+    citations_lexml = verify_citations("O caso em análise atrai o [Art. 186 do Código Civil] para a lide.")
+    assert len(citations_lexml) == 1
+    assert citations_lexml[0]["status"] == "ok"
+    
+    # C. Test Circuit Breaker State Transitions
+    from backend.app.services.resilience import get_breaker
+    
+    breaker = get_breaker("test_provider")
+    # Reset state
+    breaker.state = "CLOSED"
+    breaker.failure_count = 0
+    
+    assert breaker.state == "CLOSED"
+    assert breaker.allow_request() is True
+    
+    # Simulate consecutive failures
+    for i in range(5):
+        breaker.record_failure()
+        
+    # Breaker should trip to OPEN
+    assert breaker.state == "OPEN"
+    assert breaker.allow_request() is False
+    
+    # Simulate recovery timeout (temporarily manipulate last_state_change for testing)
+    breaker.last_state_change = breaker.last_state_change - 65.0
+    # Now it should allow request and transition to HALF-OPEN
+    assert breaker.allow_request() is True
+    assert breaker.state == "HALF-OPEN"
+    
+    # Test success in HALF-OPEN transitions to CLOSED
+    breaker.record_success()
+    assert breaker.state == "CLOSED"
+    assert breaker.failure_count == 0
+    
+    print("Resiliência (Circuit Breaker) OK!")
+    
     print("\n=== Todos os Testes Passaram com Sucesso! ===")
 
 if __name__ == "__main__":

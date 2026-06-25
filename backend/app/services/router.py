@@ -124,6 +124,33 @@ def summarize_history_context(old_messages: list, provider: str) -> str:
     except Exception as e:
         return f"Resumo automático (Erro na chamada do LLM de resumo: {e}): Histórico de interações e teses jurídicas analisadas previamente."
 
+from backend.app.services.resilience import execute_with_retry_and_breaker, get_breaker
+
+@execute_with_retry_and_breaker(provider_name="anthropic")
+def _call_anthropic(client, model_id, temperature, system_blocks, messages_payload):
+    return client.messages.create(
+        model=model_id,
+        max_tokens=2048,
+        temperature=temperature,
+        system=system_blocks,
+        messages=messages_payload
+    )
+
+@execute_with_retry_and_breaker(provider_name="google")
+def _call_google(model_instance, contents, temperature):
+    return model_instance.generate_content(
+        contents,
+        generation_config={"temperature": temperature}
+    )
+
+@execute_with_retry_and_breaker(provider_name="openai")
+def _call_openai(client, model, temperature, messages_payload):
+    return client.chat.completions.create(
+        model=model,
+        temperature=temperature,
+        messages=messages_payload
+    )
+
 def generate_response(prompt: str, task_type: str = "default", model_override: str = None, history: list = None) -> Tuple[str, str, int, int]:
     """
     Generates response from selected model or falls back to simulation.
@@ -158,14 +185,11 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
     processed_history = []
     if history and len(history) > 0:
         if len(history) > 6:
-            # Slices: compress everything except the last 4 messages (representing 2 turns)
             compress_slice = history[:-4]
             preserve_slice = history[-4:]
             
-            # Generate summary in background/synchronously using cheap model
             summary = summarize_history_context(compress_slice, provider)
             
-            # Prepend summary to history in alternating pattern
             processed_history.append({
                 "role": "user",
                 "content": f"[Histórico anterior resumido para economia de tokens: {summary}]"
@@ -175,7 +199,6 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
                 "content": "Entendido perfeitamente. Como posso ajudar com as próximas etapas com base nesse histórico?"
             })
             
-            # Append preserved recent exchanges
             for msg in preserve_slice:
                 processed_history.append({
                     "role": "user" if msg.get("role") == "user" else "assistant",
@@ -188,12 +211,10 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
                     "content": msg.get("content")
                 })
 
-    # Calculate mock tokens
     input_tokens = len(prompt.split()) * 2
     if history:
         input_tokens += sum(len(m.get("content", "").split()) for m in history) * 2
     
-    # Check if API keys are default mock values to run in simulation mode
     is_openai_mock = settings.OPENAI_API_KEY == "mock-openai-key" or not settings.OPENAI_API_KEY
     is_anthropic_mock = settings.ANTHROPIC_API_KEY == "mock-anthropic-key" or not settings.ANTHROPIC_API_KEY
     is_gemini_mock = settings.GEMINI_API_KEY == "mock-gemini-key" or not settings.GEMINI_API_KEY
@@ -201,20 +222,23 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
     if (provider == "openai" and is_openai_mock) or \
        (provider == "anthropic" and is_anthropic_mock) or \
        (provider == "google" and is_gemini_mock):
-        # Simulation Mode
-        time.sleep(1.5)  # Simulate API latency
+        time.sleep(1.5)
         response_text = MOCK_RESPONSES.get(task_type, MOCK_RESPONSES["default"])
         output_tokens = len(response_text.split()) * 2
         return response_text, model, input_tokens, output_tokens
         
-    # Real integrations
     try:
+        # Check circuit breaker before proceeding with real integration
+        breaker = get_breaker(provider)
+        if not breaker.allow_request():
+            print(f"[Resilience Warning] Circuit breaker for provider '{provider}' is OPEN. Immediate fallback triggered.")
+            raise RuntimeError(f"Circuit breaker for provider '{provider}' is OPEN.")
+
         if provider == "anthropic":
             import anthropic
             client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
             model_id = "claude-sonnet-4-6" if model in ["claude-3-5-sonnet", "claude-3-5-sonnet-latest", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet-20240620"] else model
             
-            # Construct cache-augmented system prompt (CAG)
             system_blocks = [
                 {
                     "type": "text",
@@ -229,7 +253,6 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
                     "cache_control": {"type": "ephemeral"}
                 })
             
-            # Format messages
             messages_payload = []
             for msg in processed_history:
                 messages_payload.append({
@@ -238,13 +261,7 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
                 })
             messages_payload.append({"role": "user", "content": prompt})
             
-            message = client.messages.create(
-                model=model_id,
-                max_tokens=2048,
-                temperature=temperature,
-                system=system_blocks,
-                messages=messages_payload
-            )
+            message = _call_anthropic(client, model_id, temperature, system_blocks, messages_payload)
             response_text = message.content[0].text
             input_toks = message.usage.input_tokens
             output_toks = message.usage.output_tokens
@@ -254,7 +271,6 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
             import google.generativeai as genai
             genai.configure(api_key=settings.GEMINI_API_KEY)
             
-            # Format Gemini system instruction and contents
             full_system = system_prompt
             if rag_context:
                 full_system += f"\n\n{rag_context}"
@@ -264,7 +280,6 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
                 system_instruction=full_system
             )
             
-            # Form contents history list
             contents = []
             for msg in processed_history:
                 role = "user" if msg["role"] == "user" else "model"
@@ -277,10 +292,7 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
                 "parts": [prompt]
             })
             
-            response = model_instance.generate_content(
-                contents,
-                generation_config={"temperature": temperature}
-            )
+            response = _call_google(model_instance, contents, temperature)
             response_text = response.text
             input_toks = len(prompt.split()) * 2
             output_toks = len(response_text.split()) * 2
@@ -291,7 +303,6 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
             client = OpenAI(api_key=settings.OPENAI_API_KEY)
             
             messages_payload = []
-            
             full_system = system_prompt
             if rag_context:
                 full_system += f"\n\n{rag_context}"
@@ -305,19 +316,16 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
                 })
             messages_payload.append({"role": "user", "content": prompt})
             
-            response = client.chat.completions.create(
-                model=model,
-                temperature=temperature,
-                messages=messages_payload
-            )
+            response = _call_openai(client, model, temperature, messages_payload)
             response_text = response.choices[0].message.content
             input_toks = response.usage.prompt_tokens
             output_toks = response.usage.completion_tokens
             return response_text, model, input_toks, output_toks
             
     except Exception as e:
-        # Fallback to GPT-4o simulation or call
+        # Fallback to GPT-4o
         fallback_model = "gpt-4o"
+        print(f"[Resilience] Exception occurred during call: {e}. Executing fallback to {fallback_model}.")
         if is_openai_mock:
             response_text = f"Fallback ativado devido a erro no provedor original ({e}). " + MOCK_RESPONSES.get(task_type, MOCK_RESPONSES["default"])
             return response_text, fallback_model, input_tokens, len(response_text.split()) * 2
@@ -339,9 +347,12 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
                 })
             messages_payload.append({"role": "user", "content": prompt})
             
-            response = client.chat.completions.create(
-                model=fallback_model,
-                temperature=0.0,
-                messages=messages_payload
-            )
-            return response.choices[0].message.content, fallback_model, response.usage.prompt_tokens, response.usage.completion_tokens
+            # Execute fallback with OpenAI resilience/circuit breaker
+            try:
+                response = _call_openai(client, fallback_model, 0.0, messages_payload)
+                return response.choices[0].message.content, fallback_model, response.usage.prompt_tokens, response.usage.completion_tokens
+            except Exception as fb_err:
+                print(f"[Resilience] Fallback failed: {fb_err}. Returning simulation fallback.")
+                response_text = f"Fallback emergencial ativado devido a erro duplo ({e} / {fb_err}). " + MOCK_RESPONSES.get(task_type, MOCK_RESPONSES["default"])
+                return response_text, fallback_model, input_tokens, len(response_text.split()) * 2
+
