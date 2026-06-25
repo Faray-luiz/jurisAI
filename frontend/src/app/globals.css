@@ -1,49 +1,49 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
   /* ── Superfícies ── */
-  --paper: #FAF8F4;      /* fundo principal — papel quente */
-  --paper-2: #F2EEE6;    /* fundo alternativo / hover sutil */
-  --surface: #FFFFFF;    /* cards, inputs, áreas de conteúdo */
-  --line: #E5DDCF;       /* divisores, bordas de cards */
+  --paper: hsl(36, 12%, 96%);      /* fundo principal — papel quente */
+  --paper-2: hsl(36, 12%, 91%);    /* fundo alternativo / hover sutil */
+  --surface: hsl(36, 12%, 99%);    /* cards, inputs, áreas de conteúdo */
+  --line: hsl(36, 10%, 86%);       /* divisores, bordas de cards */
 
   /* ── Tinta ── */
-  --ink: #1B1E23;        /* texto principal */
-  --ink-soft: #4A4F57;   /* texto secundário */
-  --ink-faint: #7C828B;  /* labels, placeholders, metadados */
+  --ink: hsl(0, 0%, 12%);          /* texto principal */
+  --ink-soft: hsl(0, 0%, 35%);     /* texto secundário */
+  --ink-faint: hsl(0, 0%, 55%);    /* labels, placeholders, metadados */
 
   /* ── Rail / Sidebar ── */
-  --rail: #14202B;       /* fundo da sidebar */
-  --rail-2: #1E2E3C;     /* hover e cards dentro da rail */
-  --rail-line: #2A3B4B;  /* divisores dentro da rail */
-  --rail-text: #AEB9C4;  /* texto padrão na rail */
-  --rail-bright: #EEF2F6;/* texto em destaque na rail */
+  --rail: hsl(350, 45%, 12%);      /* fundo da sidebar - borgonha profundo */
+  --rail-2: hsl(350, 40%, 18%);    /* hover e cards dentro da rail */
+  --rail-line: hsl(350, 35%, 22%);  /* divisores dentro da rail */
+  --rail-text: hsl(350, 15%, 75%);  /* texto padrão na rail */
+  --rail-bright: hsl(350, 100%, 98%);/* texto em destaque na rail */
 
   /* ── Acento primário — Bordô (lacre) ── */
-  --bordo: #7A2E2E;      /* CTA principal, destaques, borda ativa */
-  --bordo-2: #974140;    /* hover do bordô */
+  --bordo: hsl(350, 45%, 30%);      /* CTA principal, destaques, borda ativa */
+  --bordo-2: hsl(350, 45%, 38%);    /* hover do bordô */
 
   /* ── Status: Verificado (somente citações) ── */
-  --verde: #2F6B4F;
-  --verde-soft: #E7F0EB;
-  --verde-line: #BFD8C9;
+  --verde: hsl(152, 39%, 28%);
+  --verde-soft: hsl(152, 35%, 94%);
+  --verde-line: hsl(152, 25%, 82%);
 
   /* ── Status: Não verificado (somente citações) ── */
-  --ambar: #8C611B;
-  --ambar-soft: #F6ECD6;
-  --ambar-line: #E2CB97;
+  --ambar: hsl(35, 68%, 32%);
+  --ambar-soft: hsl(35, 55%, 92%);
+  --ambar-line: hsl(35, 45%, 78%);
 
   /* ── Status: Em revisão (somente citações) ── */
-  --review-bg: #EAEFF3;
-  --review-text: #3E5366;
-  --review-line: #CBD8E2;
+  --review-bg: hsl(204, 25%, 94%);
+  --review-text: hsl(204, 25%, 32%);
+  --review-line: hsl(204, 20%, 84%);
 
   /* ── Destaque decorativo ── */
-  --gold: #B08D57;       /* barra de cota, detalhes ornamentais */
+  --gold: hsl(37, 39%, 52%);       /* barra de cota, detalhes ornamentais */
 
   /* ── Sombras ── */
-  --shadow: 0 1px 2px rgba(20,32,43,.04), 0 8px 28px rgba(20,32,43,.08);
-  --shadow-lg: 0 24px 60px rgba(20,32,43,.18);
+  --shadow: 0 4px 20px -2px rgba(20,32,43,.04), 0 1px 3px rgba(20,32,43,.02);
+  --shadow-lg: 0 12px 36px -4px rgba(20,32,43,.12);
 }
 
 /* Reset base */
@@ -51,14 +51,31 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 body {
   background: var(--paper);
   color: var(--ink);
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Elegant Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-faint);
 }
 
 /* Outline de Acessibilidade */
@@ -72,7 +89,7 @@ body {
 .text-hero {
   font-family: 'Fraunces', serif;
   font-size: clamp(30px, 4.5vw, 44px);
-  font-weight: 400;
+  font-weight: 300;
   line-height: 1.08;
   letter-spacing: -0.01em;
 }
@@ -128,32 +145,54 @@ body {
 }
 
 .text-label {
-  font-family: 'IBM Plex Sans', sans-serif;
-  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .text-body {
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 14px;
   line-height: 1.5;
 }
 
 .text-small {
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 12.5px;
   color: var(--ink-faint);
 }
 
 .text-eyebrow {
-  font-family: 'IBM Plex Sans', sans-serif;
-  font-size: 11.5px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--bordo);
+}
+
+/* Glassmorphism & Card Utilities */
+.glass-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.04);
+}
+
+.card-premium {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-premium:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -4px rgba(20,32,43,.06);
 }
 
 /* ── Layout & Grid ── */
@@ -210,14 +249,19 @@ body {
   width: 38px;
   height: 38px;
   border-radius: 9px;
-  background: linear-gradient(160deg, #7A2E2E, #5e2222);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+  background: linear-gradient(135deg, var(--bordo), var(--primary-dark));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15), 0 4px 12px rgba(0,0,0,0.15);
   display: grid;
   place-items: center;
   color: #fff;
   font-family: 'Fraunces', serif;
   font-weight: 600;
   font-size: 20px;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.logo-container:hover .logo-seal {
+  transform: scale(1.08) rotate(5deg);
 }
 
 .logo-text {
@@ -225,43 +269,48 @@ body {
   font-size: 19px;
   font-weight: 500;
   color: var(--rail-bright);
+  letter-spacing: -0.3px;
 }
 
 .nav-label {
-  font-size: 10.5px;
-  letter-spacing: .13em;
+  font-size: 10px;
+  letter-spacing: .15em;
   text-transform: uppercase;
-  color: #5E6E7C;
+  color: hsl(350, 15%, 50%);
   margin: 16px 0 6px 10px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 10px;
-  border-radius: 9px;
+  padding: 10px 14px;
+  border-radius: 8px;
   color: var(--rail-text);
   text-decoration: none;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 500;
-  transition: background .15s, color .15s;
+  transition: all 0.2s ease;
   cursor: pointer;
   background: transparent;
   border: none;
   width: 100%;
   text-align: left;
+  border-left: 3px solid transparent;
 }
 
 .nav-item:hover {
   background: var(--rail-2);
   color: var(--rail-bright);
+  padding-left: 16px;
 }
 
 .nav-item.active {
   background: var(--rail-2);
   color: var(--rail-bright);
+  border-left: 3px solid var(--gold);
+  font-weight: 600;
 }
 
 /* Sidebar Quota Card */
@@ -274,12 +323,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .bar {
   height: 6px;
   border-radius: 99px;
-  background: #0E1922;
+  background: hsl(350, 45%, 8%);
   overflow: hidden;
 }
 
@@ -287,7 +337,7 @@ body {
   display: block;
   height: 100%;
   border-radius: 99px;
-  background: linear-gradient(90deg, var(--gold), #caa978);
+  background: linear-gradient(90deg, var(--gold), hsl(37, 45%, 65%));
   transition: width 0.3s ease;
 }
 
@@ -305,10 +355,13 @@ body {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--bordo);
+  background: linear-gradient(135deg, var(--bordo-2), var(--bordo));
   display: grid;
   place-items: center;
   color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   font-weight: 600;
   font-size: 13px;
 }

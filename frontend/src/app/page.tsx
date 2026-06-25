@@ -1127,36 +1127,34 @@ export default function Home() {
           alignItems: "center", 
           justifyContent: "center", 
           minHeight: "100vh", 
-          background: "var(--paper)",
-          fontFamily: "'IBM Plex Sans', sans-serif"
+          background: "radial-gradient(circle at top, hsl(350, 40%, 93%) 0%, var(--paper) 100%)",
+          fontFamily: "'Inter', sans-serif"
         }}
       >
         <div 
+          className="glass-card"
           style={{ 
-            background: "var(--surface)", 
-            border: "1px solid var(--line)", 
-            borderRadius: "14px", 
-            padding: "40px", 
+            borderRadius: "16px", 
+            padding: "48px 40px", 
             width: "100%", 
-            maxWidth: "400px", 
-            boxShadow: "var(--shadow)" 
+            maxWidth: "420px", 
           }}
         >
           {/* Logo Seal */}
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "24px" }}>
             <div 
               style={{ 
-                width: "48px", 
-                height: "48px", 
-                borderRadius: "11px", 
-                background: "linear-gradient(160deg, var(--bordo), #5e2222)",
+                width: "52px", 
+                height: "52px", 
+                borderRadius: "12px", 
+                background: "linear-gradient(135deg, var(--bordo), var(--primary-dark))",
                 color: "#fff",
                 display: "grid",
                 placeItems: "center",
                 fontFamily: "'Fraunces', serif",
-                fontSize: "24px",
+                fontSize: "26px",
                 fontWeight: 600,
-                boxShadow: "inset 0 1px 2px rgba(255,255,255,0.15)"
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), 0 6px 20px rgba(0,0,0,0.12)"
               }}
             >
               J
@@ -1170,7 +1168,7 @@ export default function Home() {
               marginBottom: "6px", 
               color: "var(--ink)",
               fontFamily: "'Fraunces', serif",
-              fontSize: "24px",
+              fontSize: "26px",
               fontWeight: 400
             }}
           >
@@ -1182,7 +1180,8 @@ export default function Home() {
               fontSize: "13px", 
               color: "var(--ink-faint)", 
               textAlign: "center", 
-              marginBottom: "28px" 
+              marginBottom: "32px",
+              fontWeight: 500
             }}
           >
             Controle de Governança e Roteamento de Modelos
@@ -1191,25 +1190,26 @@ export default function Home() {
           {loginError && (
             <div 
               style={{ 
-                background: "rgba(122, 46, 46, 0.08)", 
-                border: "1px solid rgba(122, 46, 46, 0.3)", 
+                background: "rgba(122, 46, 46, 0.06)", 
+                border: "1px solid rgba(122, 46, 46, 0.2)", 
                 borderRadius: "8px", 
-                padding: "12px", 
+                padding: "12px 14px", 
                 fontSize: "12px", 
                 color: "var(--bordo)", 
-                marginBottom: "20px",
-                lineHeight: "1.45"
+                marginBottom: "24px",
+                lineHeight: "1.5",
+                fontWeight: 500
               }}
             >
               {loginError}
             </div>
           )}
 
-          <form onSubmit={handleLoginSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <form onSubmit={handleLoginSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             <div>
               <label 
                 className="text-label" 
-                style={{ display: "block", marginBottom: "6px", fontSize: "11px" }}
+                style={{ display: "block", marginBottom: "8px", fontSize: "10.5px", color: "var(--ink-soft)" }}
               >
                 E-mail Corporativo Autorizado
               </label>
@@ -1221,11 +1221,21 @@ export default function Home() {
                 placeholder="seu.nome@jurisai.com.br"
                 style={{ 
                   width: "100%", 
-                  padding: "10px", 
+                  padding: "12px 14px", 
                   borderRadius: "9px", 
                   border: "1px solid var(--line)", 
                   fontSize: "13.5px",
-                  outline: "none"
+                  outline: "none",
+                  background: "rgba(255, 255, 255, 0.8)",
+                  transition: "all 0.2s ease"
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = "var(--bordo)";
+                  e.target.style.boxShadow = "0 0 0 3px rgba(122,46,46,0.1)";
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = "var(--line)";
+                  e.target.style.boxShadow = "none";
                 }}
               />
             </div>
@@ -1233,7 +1243,7 @@ export default function Home() {
             <div>
               <label 
                 className="text-label" 
-                style={{ display: "block", marginBottom: "6px", fontSize: "11px" }}
+                style={{ display: "block", marginBottom: "8px", fontSize: "10.5px", color: "var(--ink-soft)" }}
               >
                 Senha de Acesso
               </label>
@@ -1241,14 +1251,24 @@ export default function Home() {
                 type="password"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
-                placeholder="Sua senha segura (deixe em branco se for simulado)"
+                placeholder="Sua senha ou deixe em branco se for simulado"
                 style={{ 
                   width: "100%", 
-                  padding: "10px", 
+                  padding: "12px 14px", 
                   borderRadius: "9px", 
                   border: "1px solid var(--line)", 
                   fontSize: "13.5px",
-                  outline: "none"
+                  outline: "none",
+                  background: "rgba(255, 255, 255, 0.8)",
+                  transition: "all 0.2s ease"
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = "var(--bordo)";
+                  e.target.style.boxShadow = "0 0 0 3px rgba(122,46,46,0.1)";
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = "var(--line)";
+                  e.target.style.boxShadow = "none";
                 }}
               />
             </div>
@@ -1257,21 +1277,44 @@ export default function Home() {
               type="submit" 
               className="btn" 
               disabled={loginLoading}
-              style={{ justifyContent: "center", padding: "10px", width: "100%" }}
+              style={{ 
+                justifyContent: "center", 
+                padding: "12px", 
+                width: "100%", 
+                borderRadius: "9px",
+                fontSize: "14px",
+                fontWeight: 600,
+                background: "var(--bordo)",
+                color: "#fff",
+                border: "none",
+                cursor: "pointer",
+                boxShadow: "0 4px 12px rgba(122,46,46,0.15)",
+                display: "flex",
+                alignItems: "center",
+                transition: "all 0.2s ease"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--bordo-2)";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "var(--bordo)";
+                e.currentTarget.style.transform = "none";
+              }}
             >
-              {loginLoading ? <Loader2 size={14} className="spin" /> : "Entrar"}
+              {loginLoading ? <Loader2 size={16} className="spin" /> : "Entrar na plataforma"}
             </button>
           </form>
 
           {/* Simulated Login Links */}
-          <div style={{ marginTop: "32px", borderTop: "1px solid var(--line)", paddingTop: "20px" }}>
+          <div style={{ marginTop: "36px", borderTop: "1px solid var(--line)", paddingTop: "24px" }}>
             <span 
               className="text-label" 
-              style={{ display: "block", marginBottom: "12px", fontSize: "10px", textAlign: "center", color: "var(--ink-faint)" }}
+              style={{ display: "block", marginBottom: "16px", fontSize: "10px", textAlign: "center", color: "var(--ink-faint)", letterSpacing: "0.15em" }}
             >
               Ambiente de Homologação / Simulação
             </span>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
               {[
                 { email: "lucas@jurisai.com.br", label: "Lucas (Advogado)" },
                 { email: "mariana@jurisai.com.br", label: "Mariana (Advogada)" },
@@ -1288,16 +1331,25 @@ export default function Home() {
                     fetchUserData(sim.email);
                   }}
                   style={{
-                    background: "var(--paper-2)",
+                    background: "rgba(255, 255, 255, 0.5)",
                     border: "1px solid var(--line)",
-                    borderRadius: "6px",
-                    fontSize: "11px",
-                    padding: "6px",
+                    borderRadius: "8px",
+                    fontSize: "11.5px",
+                    padding: "8px 6px",
                     cursor: "pointer",
                     fontFamily: "inherit",
                     fontWeight: 500,
                     color: "var(--ink-soft)",
-                    textAlign: "center"
+                    textAlign: "center",
+                    transition: "all 0.2s ease"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.9)";
+                    e.currentTarget.style.borderColor = "var(--ink-faint)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.5)";
+                    e.currentTarget.style.borderColor = "var(--line)";
                   }}
                 >
                   {sim.label}
@@ -1600,7 +1652,7 @@ export default function Home() {
                 {adminSubTab === "logs" && (
                   <div>
                     {/* Ethical Wall Summary */}
-                    <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "20px", marginBottom: "30px" }}>
+                    <div className="card-premium" style={{ padding: "20px", marginBottom: "30px" }}>
                       <h3 className="text-section" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "16px", marginBottom: "12px" }}>
                         <ShieldAlert size={18} style={{ color: "var(--bordo)" }} /> Muralhas Éticas (Conflitos Declarados)
                       </h3>
@@ -1713,7 +1765,7 @@ export default function Home() {
                       </div>
                     )}
                     
-                    <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "20px", marginBottom: "30px" }}>
+                    <div className="card-premium" style={{ padding: "20px", marginBottom: "30px" }}>
                       <label className="text-label" style={{ display: "block", marginBottom: "8px" }}>Selecione o Agente/Missão para configurar:</label>
                       <select
                         value={selectedAgentConfig?.task_type || ""}
@@ -2124,7 +2176,7 @@ export default function Home() {
                     </div>
 
                     {currentUser?.role === "Sócio" && (
-                      <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "20px", marginBottom: "30px" }}>
+                      <div className="card-premium" style={{ padding: "20px", marginBottom: "30px" }}>
                         <h3 className="text-section" style={{ fontSize: "15px", marginBottom: "14px", color: "var(--bordo)" }}>Painel de Governança Orçamentária</h3>
                         <form onSubmit={handleSaveSystemSettings} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                           <div style={{ display: "flex", gap: "24px", flexWrap: "wrap", alignItems: "flex-start" }}>
@@ -2302,7 +2354,7 @@ export default function Home() {
 
                     {/* Centro de Custos por Cliente e Processo */}
                     {systemSettings.enable_client_billing && (
-                      <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "20px", marginBottom: "30px" }}>
+                      <div className="card-premium" style={{ padding: "20px", marginBottom: "30px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
                           <div>
                             <h3 className="text-section" style={{ fontSize: "15px", marginBottom: "4px", color: "var(--bordo)" }}>
