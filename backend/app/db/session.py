@@ -360,9 +360,12 @@ seed_database()
 
 # Database Interface Exports
 def get_db_user(email: str) -> dict:
+    if not email:
+        return None
+    email_clean = email.strip().lower()
     db = SessionLocal()
     try:
-        user = db.query(DBUser).filter(DBUser.email == email).first()
+        user = db.query(DBUser).filter(DBUser.email == email_clean).first()
         return user_to_dict(user)
     finally:
         db.close()
@@ -392,9 +395,12 @@ def get_all_db_audits() -> list:
         db.close()
 
 def update_db_user_quota_limit(email: str, limit: float) -> bool:
+    if not email:
+        return False
+    email_clean = email.strip().lower()
     db = SessionLocal()
     try:
-        user = db.query(DBUser).filter(DBUser.email == email).first()
+        user = db.query(DBUser).filter(DBUser.email == email_clean).first()
         if user:
             user.quota_limit = limit
             db.commit()
@@ -407,9 +413,12 @@ def update_db_user_quota_limit(email: str, limit: float) -> bool:
         db.close()
 
 def add_db_quota_spent(email: str, cost: float) -> bool:
+    if not email:
+        return False
+    email_clean = email.strip().lower()
     db = SessionLocal()
     try:
-        user = db.query(DBUser).filter(DBUser.email == email).first()
+        user = db.query(DBUser).filter(DBUser.email == email_clean).first()
         if user:
             user.quota_spent += cost
             db.commit()

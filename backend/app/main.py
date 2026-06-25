@@ -641,7 +641,8 @@ def admin_create_user(payload: UserCreatePayload, user: dict = Depends(get_curre
     from backend.app.email import send_invitation_email
     db = SessionLocal()
     try:
-        existing = db.query(DBUser).filter(DBUser.email == payload.email).first()
+        email_clean = payload.email.strip().lower()
+        existing = db.query(DBUser).filter(DBUser.email == email_clean).first()
         if existing:
             raise HTTPException(status_code=400, detail="Usuário já cadastrado.")
 
@@ -649,7 +650,7 @@ def admin_create_user(payload: UserCreatePayload, user: dict = Depends(get_curre
         token = str(uuid.uuid4())
 
         new_u = DBUser(
-            email=payload.email,
+            email=email_clean,
             name=payload.name,
             role=payload.role,
             quota_limit=payload.quota_limit,
@@ -665,7 +666,7 @@ def admin_create_user(payload: UserCreatePayload, user: dict = Depends(get_curre
 
         # Send invitation email via Resend (non-blocking — errors are logged, not raised)
         email_result = send_invitation_email(
-            to_email=payload.email,
+            to_email=email_clean,
             name=payload.name,
             token=token,
         )
@@ -696,7 +697,8 @@ def login(payload: LoginPayload):
     from backend.app.db.models import DBUser
     db = SessionLocal()
     try:
-        user = db.query(DBUser).filter(DBUser.email == payload.email).first()
+        email_clean = payload.email.strip().lower()
+        user = db.query(DBUser).filter(DBUser.email == email_clean).first()
         if not user:
             raise HTTPException(status_code=401, detail="Usuário não cadastrado.")
 

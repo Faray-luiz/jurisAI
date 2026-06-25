@@ -296,12 +296,13 @@ export default function Home() {
     if (!loginEmail) return;
     setLoginLoading(true);
     setLoginError(null);
+    const emailClean = loginEmail.trim().toLowerCase();
     try {
       // Authenticate with backend first
       const res = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginEmail, password: loginPassword })
+        body: JSON.stringify({ email: emailClean, password: loginPassword })
       });
 
       let data: any = {};
@@ -314,8 +315,8 @@ export default function Home() {
       }
 
       if (res.ok) {
-        localStorage.setItem("auth_email", loginEmail);
-        const success = await fetchUserData(loginEmail);
+        localStorage.setItem("auth_email", emailClean);
+        const success = await fetchUserData(emailClean);
         if (!success) {
           setLoginError("Erro ao carregar dados do usuário.");
         } else {
@@ -1211,13 +1212,17 @@ export default function Home() {
     if (!userForm.name || !userForm.email) return;
     setUserSaving(true);
     try {
+      const cleanedForm = {
+        ...userForm,
+        email: userForm.email.trim().toLowerCase()
+      };
       const res = await fetch(`${BACKEND_URL}/api/v1/admin/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${currentUser.email}`
         },
-        body: JSON.stringify(userForm)
+        body: JSON.stringify(cleanedForm)
       });
       
       let data: any = {};
