@@ -212,13 +212,20 @@ export default function Home() {
         const allUsers = await allUsersRes.json();
         setUsersList(allUsers);
       } else {
-        // Fallback static list of switcher users if user is not authorized
-        setUsersList([
+        const fallbackUsers = [
           { email: "lucas@jurisai.com.br", name: "Lucas Silva", role: "Advogado" },
           { email: "mariana@jurisai.com.br", name: "Mariana Souza", role: "Advogado" },
           { email: "roberto@jurisai.com.br", name: "Roberto Mendes", role: "Sócio" },
           { email: "ana@jurisai.com.br", name: "Ana Rocha", role: "Compliance" }
-        ]);
+        ];
+        if (userData && !fallbackUsers.some(u => u.email === userData.email)) {
+          fallbackUsers.push({
+            email: userData.email,
+            name: userData.name || userData.email.split("@")[0].toUpperCase(),
+            role: userData.role || "Advogado"
+          });
+        }
+        setUsersList(fallbackUsers);
       }
 
       // If on audit tab, fetch admin resources
