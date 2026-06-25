@@ -107,6 +107,35 @@ def run_tests():
     assert user_profile["email"] == new_email
     assert user_profile["role"] == "Advogado"
     print("Restrição de Acesso a Usuários Criados OK!")
+    
+    # Test Fase 3: Block mock emails in production environment
+    from backend.app.core.config import settings
+    original_env = settings.ENV
+    try:
+        settings.ENV = "production"
+        try:
+            get_current_user(mock_token)
+            assert False, "Should have raised HTTPException 401 in production environment with mock token"
+        except HTTPException as e:
+            assert e.status_code == 401
+            assert "não são permitidos" in e.detail or "não configurada" in e.detail
+        print("Bloqueio de tokens mock em produção OK!")
+    finally:
+        settings.ENV = original_env
+
+    # Test Microsoft M365 JWT decode simulation in development mode
+    import jwt
+    mock_m365_payload = {
+        "iss": "https://login.microsoftonline.com/9188040d-6c67-4c5b-b112-36a304b66dad/v2.0",
+        "preferred_username": new_email,
+        "name": "Rodrigo Microsoft",
+        "aud": "mock-m365-client"
+    }
+    mock_m365_jwt = jwt.encode(mock_m365_payload, "temp-secret", algorithm="HS256")
+    m365_profile = get_current_user(f"Bearer {mock_m365_jwt}")
+    assert m365_profile is not None
+    assert m365_profile["email"] == new_email
+    print("Simulação de token Microsoft M365 OK!")
     # 5. Test Admin API Endpoints
     print("\n5. Testando Endpoints de Administração...")
     from fastapi.testclient import TestClient

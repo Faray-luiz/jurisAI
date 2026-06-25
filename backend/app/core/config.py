@@ -16,6 +16,14 @@ class Settings(BaseSettings):
     JWT_SECRET: str = os.getenv("JWT_SECRET", "super-secret-key-change-in-production")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 1 week
     
+    ENV: str = os.getenv("ENV", "development")
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
+    MICROSOFT_CLIENT_ID: str = os.getenv("MICROSOFT_CLIENT_ID", "")
+    
+    # LangSmith Observability
+    LANGSMITH_API_KEY: str = os.getenv("LANGSMITH_API_KEY", "")
+    LANGSMITH_PROJECT: str = os.getenv("LANGSMITH_PROJECT", "jurisai-gateway")
+    
     # Model APIs
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "mock-openai-key")
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "mock-anthropic-key")

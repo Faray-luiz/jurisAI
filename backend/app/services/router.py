@@ -151,6 +151,61 @@ def _call_openai(client, model, temperature, messages_payload):
         messages=messages_payload
     )
 
+def _log_to_langsmith(provider: str, model: str, prompt: str, system_prompt: str, response: str, tokens_in: int, tokens_out: int):
+    if not settings.LANGSMITH_API_KEY:
+        return
+    try:
+        import requests
+        try:
+            from langsmith import Client
+            client = Client(api_url="https://api.smith.langchain.com", api_key=settings.LANGSMITH_API_KEY)
+            client.create_run(
+                name=f"JurisAI - {provider} - {model}",
+                run_type="llm",
+                inputs={"prompt": prompt, "system_prompt": system_prompt},
+                outputs={"response": response},
+                project_name=settings.LANGSMITH_PROJECT,
+                extra={
+                    "metadata": {
+                        "provider": provider,
+                        "model": model,
+                        "tokens_in": tokens_in,
+                        "tokens_out": tokens_out
+                    }
+                }
+            )
+            print("[LangSmith] Run successfully logged via SDK.")
+        except ImportError:
+            import uuid
+            run_id = str(uuid.uuid4())
+            payload = {
+                "id": run_id,
+                "name": f"JurisAI - {provider} - {model}",
+                "run_type": "llm",
+                "inputs": {"prompt": prompt, "system_prompt": system_prompt},
+                "outputs": {"response": response},
+                "session_name": settings.LANGSMITH_PROJECT,
+                "extra": {
+                    "metadata": {
+                        "provider": provider,
+                        "model": model,
+                        "tokens_in": tokens_in,
+                        "tokens_out": tokens_out
+                    }
+                }
+            }
+            headers = {
+                "x-api-key": settings.LANGSMITH_API_KEY,
+                "Content-Type": "application/json"
+            }
+            res = requests.post("https://api.smith.langchain.com/runs", json=payload, headers=headers, timeout=2.0)
+            if res.status_code in [200, 201]:
+                print("[LangSmith] Run successfully logged via REST API.")
+            else:
+                print(f"[LangSmith] API post returned status {res.status_code}: {res.text}")
+    except Exception as e:
+        print(f"[LangSmith Logging Error] Graceful fallback active: {e}")
+
 def generate_response(prompt: str, task_type: str = "default", model_override: str = None, history: list = None) -> Tuple[str, str, int, int]:
     """
     Generates response from selected model or falls back to simulation.
@@ -225,6 +280,7 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
         time.sleep(1.5)
         response_text = MOCK_RESPONSES.get(task_type, MOCK_RESPONSES["default"])
         output_tokens = len(response_text.split()) * 2
+        _log_to_langsmith(provider, model, prompt, system_prompt, response_text, input_tokens, output_tokens)
         return response_text, model, input_tokens, output_tokens
         
     try:
@@ -265,6 +321,7 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
             response_text = message.content[0].text
             input_toks = message.usage.input_tokens
             output_toks = message.usage.output_tokens
+            _log_to_langsmith(provider, model, prompt, system_prompt, response_text, input_toks, output_toks)
             return response_text, model, input_toks, output_toks
             
         elif provider == "google" or "gemini" in model.lower():
@@ -296,6 +353,7 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
             response_text = response.text
             input_toks = len(prompt.split()) * 2
             output_toks = len(response_text.split()) * 2
+            _log_to_langsmith(provider, model, prompt, system_prompt, response_text, input_toks, output_toks)
             return response_text, model, input_toks, output_toks
             
         else: # provider == "openai"
@@ -320,6 +378,7 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
             response_text = response.choices[0].message.content
             input_toks = response.usage.prompt_tokens
             output_toks = response.usage.completion_tokens
+            _log_to_langsmith(provider, model, prompt, system_prompt, response_text, input_toks, output_toks)
             return response_text, model, input_toks, output_toks
             
     except Exception as e:
@@ -328,6 +387,7 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
         print(f"[Resilience] Exception occurred during call: {e}. Executing fallback to {fallback_model}.")
         if is_openai_mock:
             response_text = f"Fallback ativado devido a erro no provedor original ({e}). " + MOCK_RESPONSES.get(task_type, MOCK_RESPONSES["default"])
+            _log_to_langsmith("openai", fallback_model, prompt, system_prompt, response_text, input_tokens, len(response_text.split()) * 2)
             return response_text, fallback_model, input_tokens, len(response_text.split()) * 2
         else:
             from openai import OpenAI
@@ -350,9 +410,14 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
             # Execute fallback with OpenAI resilience/circuit breaker
             try:
                 response = _call_openai(client, fallback_model, 0.0, messages_payload)
-                return response.choices[0].message.content, fallback_model, response.usage.prompt_tokens, response.usage.completion_tokens
+                response_text = response.choices[0].message.content
+                input_toks = response.usage.prompt_tokens
+                output_toks = response.usage.completion_tokens
+                _log_to_langsmith("openai", fallback_model, prompt, system_prompt, response_text, input_toks, output_toks)
+                return response_text, fallback_model, input_toks, output_toks
             except Exception as fb_err:
                 print(f"[Resilience] Fallback failed: {fb_err}. Returning simulation fallback.")
                 response_text = f"Fallback emergencial ativado devido a erro duplo ({e} / {fb_err}). " + MOCK_RESPONSES.get(task_type, MOCK_RESPONSES["default"])
+                _log_to_langsmith("openai", fallback_model, prompt, system_prompt, response_text, input_tokens, len(response_text.split()) * 2)
                 return response_text, fallback_model, input_tokens, len(response_text.split()) * 2
 
