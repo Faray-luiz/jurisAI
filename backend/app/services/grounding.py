@@ -1,6 +1,6 @@
 import re
 from typing import List, Dict, Any
-from backend.app.services.vector_store import query_vector_store
+from backend.app.services.vector_store import query_vector_store_single as query_vector_store
 
 def normalize_citation(text: str) -> str:
     """

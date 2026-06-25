@@ -761,13 +761,10 @@ export default function Home() {
     }
 
     try {
-      // Step 2: Cota check simulation (takes 0.5s)
-      await new Promise(r => setTimeout(r, 600));
-      setPipelineStep(2);
-      
-      // Step 3: Model Routing & API call simulation (takes 0.8s)
-      await new Promise(r => setTimeout(r, 800));
-      setPipelineStep(3);
+      // Transition steps dynamically to reflect real backend execution progress
+      setPipelineStep(2); // Ethical Wall & Quota Check
+      await new Promise(r => setTimeout(r, 100)); // Fast visual transition
+      setPipelineStep(3); // Model Routing & API Call Execution
 
       // Call API
       const response = await fetch(`${BACKEND_URL}/api/v1/chat`, {
@@ -786,7 +783,7 @@ export default function Home() {
 
       // Step 4: Grounding & PII Redaction
       setPipelineStep(4);
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 100)); // Fast visual transition before displaying response
 
       if (response.status === 402) {
         // Quota exceed block

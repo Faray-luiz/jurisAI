@@ -11,8 +11,16 @@ INJECTION_KEYWORDS = [
 def validate_input_prompt(prompt: str) -> None:
     """
     Checks the prompt for potential prompt injections.
+    Only validates the user's explicit instructions, ignoring attached factual document contents.
     """
-    p_lower = prompt.lower()
+    # Extract only the user's instruction part before any attached document
+    user_instruction = prompt
+    for delimiter in ["\n\nDocumento Anexo:\n", "\n\n[Anexo:", "<conteudo_documento_dado_puro>"]:
+        if delimiter in prompt:
+            user_instruction = prompt.split(delimiter, 1)[0]
+            break
+
+    p_lower = user_instruction.lower()
     for keyword in INJECTION_KEYWORDS:
         if keyword in p_lower:
             raise HTTPException(
