@@ -35,14 +35,10 @@ def verify_and_update_quota(user_email: str, estimated_cost: float) -> dict:
     if enable_global_budget:
         global_budget = float(sys_settings.get("global_budget", "15.0"))
         
-        # Calculate sum of all spent quotas
-        all_users = get_all_db_users()
-        total_spent = sum(u["quota_spent"] for u in all_users)
-        
-        if total_spent + estimated_cost > global_budget:
+        if estimated_cost > global_budget:
             return {
                 "allowed": False,
-                "message": f"Bloqueio de Saldo Global: O custo estimado de ${estimated_cost:.4f} excede o caixa total disponível do escritório (${global_budget - total_spent:.4f}). Contate o Sócio.",
+                "message": f"Bloqueio de Saldo Global: O custo estimado de ${estimated_cost:.4f} excede o caixa total disponível do escritório (${global_budget:.4f}). Contate o Sócio.",
                 "status": "locked"
             }
         
