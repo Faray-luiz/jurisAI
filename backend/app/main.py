@@ -64,15 +64,127 @@ def get_me(user: dict = Depends(get_current_user)):
 
 @app.get("/api/v1/processes")
 def get_processes(user: dict = Depends(get_current_user)):
-    # Filter processes based on Ethical Wall
+    # Filter processes based on Ethical Wall and Advocate Ownership
     accessible_processes = []
     processes = get_all_db_processes()
     for proc in processes:
         if proc["client"] not in user.get("conflicted_clients", []):
-            # Only Advogado/Sócio can see details
-            if user["role"] not in ["Compliance", "TI"]:
-                accessible_processes.append(proc)
+            # If it's a persistent user-owned case, check ownership or role
+            if proc.get("owner_email"):
+                if proc["owner_email"] == user["email"] or user["role"] in ["Sócio", "Compliance"]:
+                    accessible_processes.append(proc)
+            else:
+                # Mock pre-seeded processes: visible to Advogados and Sócios
+                if user["role"] not in ["Compliance", "TI"]:
+                    accessible_processes.append(proc)
     return accessible_processes
+
+@app.post("/api/v1/cases/upload")
+def upload_and_register_case(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    # Only Advogado and Sócio can register new cases
+    if user["role"] not in ["Advogado", "Sócio"]:
+        raise HTTPException(status_code=403, detail="Apenas Advogados ou Sócios podem registrar novos casos na base.")
+
+    filename = file.filename or "peticao.pdf"
+    
+    # 1. Extract text content from PDF or Text
+    content = ""
+    try:
+        file_bytes = file.file.read()
+        if filename.lower().endswith(".pdf"):
+            from backend.app.services.pdf_extractor import extract_text_from_pdf
+            content = extract_text_from_pdf(file_bytes)
+        else:
+            content = file_bytes.decode("utf-8", errors="ignore")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Falha ao ler conteúdo do arquivo: {e}")
+
+    if not content.strip():
+        raise HTTPException(status_code=400, detail="O arquivo da petição está vazio ou não possui texto extraível.")
+
+    # 2. Call LLM case metadata extraction service
+    from backend.app.services.router import get_agent_config
+    from backend.app.services.case_service import extract_case_details_from_text
+    cfg = get_agent_config("default")
+    
+    try:
+        extracted = extract_case_details_from_text(content, provider=cfg["provider"], model=cfg["model"])
+    except Exception as e:
+        print(f"Error during LLM extraction: {e}")
+        from backend.app.services.case_service import run_fallback_heuristics
+        extracted = run_fallback_heuristics(content)
+
+    # 3. Create persistent Case (Process) in DB
+    from backend.app.db.session import SessionLocal, process_to_dict
+    from backend.app.db.models import DBProcess, DBProcessDocument
+    
+    db = SessionLocal()
+    try:
+        # Check Ethical Wall for the extracted client (conflict check)
+        extracted_client = extracted.get("client", "Cliente Não Identificado")
+        if extracted_client in user.get("conflicted_clients", []):
+            raise HTTPException(
+                status_code=403,
+                detail=f"Bloqueio de Muralha Ética: O cliente da petição ({extracted_client}) conflita com suas restrições de acesso."
+            )
+
+        # Generate unique sequential Case ID
+        count = db.query(DBProcess).filter(DBProcess.id.like("CASE-2026-%")).count()
+        case_id = f"CASE-2026-{count + 1:04d}"
+
+        # Create case entry
+        db_case = DBProcess(
+            id=case_id,
+            title=extracted.get("title", "Ação Judicial"),
+            process_number=extracted.get("process_number", "CNJ-Pendente"),
+            client=extracted_client,
+            matter=extracted.get("matter", "Direito Civil"),
+            summary=extracted.get("summary", ""),
+            plaintiff=extracted.get("plaintiff", ""),
+            defendant=extracted.get("defendant", ""),
+            value=extracted.get("value", ""),
+            court=extracted.get("court", ""),
+            owner_email=user["email"]
+        )
+        db.add(db_case)
+
+        # 4. Save and encrypt the document associated with this case
+        from backend.app.core.crypto import encrypt_text
+        encrypted_doc = encrypt_text(content)
+        db_doc = DBProcessDocument(
+            process_id=case_id,
+            filename=filename,
+            encrypted_content=encrypted_doc
+        )
+        db.add(db_doc)
+        
+        db.commit()
+        db.refresh(db_case)
+        db.refresh(db_doc)
+        
+        # Log case registration action in audit logs
+        add_audit_log(
+            user["email"],
+            "Registro de Caso via Petição",
+            case_id,
+            cfg["model"],
+            0.0,
+            "Sucesso",
+            f"Upload de petição {filename}",
+            f"Caso registrado com ID {case_id}",
+            "Verificado"
+        )
+
+        return {
+            "case": process_to_dict(db_case),
+            "document_id": db_doc.id,
+            "message": "Petição analisada com sucesso. Caso registrado na base persistente!"
+        }
+    except Exception as e:
+        db.rollback()
+        raise e
+    finally:
+        db.close()
 
 @app.post("/api/v1/processes/{process_id}/documents")
 def upload_process_document(process_id: str, file: UploadFile = File(...), user: dict = Depends(get_current_user)):
@@ -140,6 +252,35 @@ def get_process_documents(process_id: str, user: dict = Depends(get_current_user
             }
             for d in docs
         ]
+    finally:
+        db.close()
+
+@app.get("/api/v1/processes/{process_id}/documents/{document_id}/sanitize")
+def get_sanitized_document(process_id: str, document_id: int, user: dict = Depends(get_current_user)):
+    # Verify Ethical Wall access
+    verify_process_access(process_id, user)
+    
+    from backend.app.db.session import SessionLocal
+    from backend.app.db.models import DBProcessDocument
+    from backend.app.core.crypto import decrypt_text
+    
+    db = SessionLocal()
+    try:
+        doc = db.query(DBProcessDocument).filter(
+            DBProcessDocument.id == document_id,
+            DBProcessDocument.process_id == process_id
+        ).first()
+        if not doc:
+            raise HTTPException(status_code=404, detail="Documento não encontrado no banco de dados.")
+        
+        # Decrypt and sanitize
+        decrypted = decrypt_text(doc.encrypted_content)
+        sanitized = sanitize_document_content(decrypted)
+        return {
+            "id": doc.id,
+            "filename": doc.filename,
+            "sanitized_content": sanitized
+        }
     finally:
         db.close()
 

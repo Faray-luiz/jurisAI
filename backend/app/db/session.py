@@ -59,6 +59,24 @@ for _sql in _user_migrations:
     except Exception:
         pass  # Column already exists
 
+# Defensively add persistent case columns to processes table
+_process_migrations = [
+    "ALTER TABLE processes ADD COLUMN summary TEXT",
+    "ALTER TABLE processes ADD COLUMN plaintiff VARCHAR",
+    "ALTER TABLE processes ADD COLUMN defendant VARCHAR",
+    "ALTER TABLE processes ADD COLUMN value VARCHAR",
+    "ALTER TABLE processes ADD COLUMN court VARCHAR",
+    "ALTER TABLE processes ADD COLUMN owner_email VARCHAR",
+    "ALTER TABLE processes ADD COLUMN created_at FLOAT"
+]
+for _sql in _process_migrations:
+    try:
+        with engine.connect() as conn:
+            conn.execute(text(_sql))
+            conn.commit()
+    except Exception:
+        pass  # Column already exists
+
 # Seed default built-in missions if table is empty
 _seed_db = SessionLocal()
 try:
@@ -113,7 +131,14 @@ def process_to_dict(proc: DBProcess) -> dict:
         "title": proc.title,
         "process_number": proc.process_number,
         "client": proc.client,
-        "matter": proc.matter
+        "matter": proc.matter,
+        "summary": proc.summary,
+        "plaintiff": proc.plaintiff,
+        "defendant": proc.defendant,
+        "value": proc.value,
+        "court": proc.court,
+        "owner_email": proc.owner_email,
+        "created_at": proc.created_at
     }
 
 def audit_to_dict(log: DBAuditLog) -> dict:

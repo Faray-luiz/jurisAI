@@ -321,6 +321,64 @@ def run_tests():
     assert "response" in sess_chat_resp.json()
     print("Upload Direto e Memória Compartilhada de Sessão OK!")
     
+    # F. Test Case Registration, LLM Extraction & Isolation
+    print("\nF. Testando Registro de Casos via Petição (Case ID Persistente)...")
+    petition_text = (
+        "AO JUÍZO DA 4ª VARA CÍVEL DA COMARCA DE CURITIBA/PR\n\n"
+        "Associação de Moradores do Bairro Novo, devidamente representada, vem propor a presente\n"
+        "AÇÃO DE OBRIGAÇÃO DE FAZER C/C INDENIZAÇÃO\n"
+        "em face de Incorporadora Beta S.A., pelos fatos a seguir expostos.\n"
+        "O autor alega que a Incorporadora descumpriu o prazo de entrega das obras de saneamento.\n"
+        "Dá-se à causa o valor de R$ 150.000,00."
+    )
+    
+    case_upload_data = {
+        "file": ("peticao_inicial_nova.txt", io.BytesIO(petition_text.encode("utf-8")), "text/plain")
+    }
+    
+    # Upload and register case as Lucas (Advogado)
+    headers_lucas = {"Authorization": "Bearer lucas@jurisai.com.br"}
+    case_resp = client.post("/api/v1/cases/upload", files=case_upload_data, headers=headers_lucas)
+    assert case_resp.status_code == 200
+    case_json = case_resp.json()
+    
+    assert "case" in case_json
+    assert "document_id" in case_json
+    new_case = case_json["case"]
+    new_doc_id = case_json["document_id"]
+    
+    assert new_case["id"].startswith("CASE-2026-")
+    assert new_case["plaintiff"] == "Associação de Moradores do Bairro Novo"
+    assert new_case["defendant"] == "Incorporadora Beta S.A."
+    assert new_case["client"] == "Associação de Moradores do Bairro Novo"
+    assert new_case["value"] == "R$ 150.000,00"
+    assert new_case["owner_email"] == "lucas@jurisai.com.br"
+    print("Registro de Caso & Extração de Metadados OK!")
+    
+    # Test Advocate Isolation: Lucas should see the case in their processes list
+    list_lucas = client.get("/api/v1/processes", headers=headers_lucas)
+    assert list_lucas.status_code == 200
+    assert any(p["id"] == new_case["id"] for p in list_lucas.json())
+    
+    # Test Advocate Isolation: Mariana (another Advogado) should NOT see the case, nor should she be allowed to access it
+    headers_mariana = {"Authorization": "Bearer mariana@jurisai.com.br"}
+    list_mariana = client.get("/api/v1/processes", headers=headers_mariana)
+    assert list_mariana.status_code == 200
+    assert not any(p["id"] == new_case["id"] for p in list_mariana.json())
+    
+    # Verify Mariana gets 403 when trying to access Lucas's case directly
+    case_detail_mariana = client.get(f"/api/v1/processes/{new_case['id']}/documents", headers=headers_mariana)
+    assert case_detail_mariana.status_code == 403
+    print("Isolamento de Casos entre Advogados OK!")
+    
+    # Test sanitization endpoint for this registered case
+    sanitize_resp = client.get(f"/api/v1/processes/{new_case['id']}/documents/{new_doc_id}/sanitize", headers=headers_lucas)
+    assert sanitize_resp.status_code == 200
+    sanitize_json = sanitize_resp.json()
+    assert "sanitized_content" in sanitize_json
+    assert "<conteudo_documento_dado_puro>" in sanitize_json["sanitized_content"]
+    print("Sanitização sob Demanda de Caso Registrado OK!")
+    
     # 7. Test LexML & Resilience (Phase 2)
     print("\n7. Testando LexML e Resiliência (Fase 2)...")
     

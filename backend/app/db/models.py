@@ -53,6 +53,15 @@ class DBProcess(Base):
     process_number = Column(String, nullable=False)
     client = Column(String, index=True, nullable=False)
     matter = Column(String, nullable=False)
+    
+    # Rich metadata for persistent Case Registration
+    summary = Column(Text, nullable=True)
+    plaintiff = Column(String, nullable=True)
+    defendant = Column(String, nullable=True)
+    value = Column(String, nullable=True)
+    court = Column(String, nullable=True)
+    owner_email = Column(String, index=True, nullable=True)
+    created_at = Column(Float, default=time.time)
 
 
 class DBAuditLog(Base):

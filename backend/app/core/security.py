@@ -196,6 +196,14 @@ def verify_process_access(process_id: str, user: dict = Depends(get_current_user
     if not process:
         raise HTTPException(status_code=444, detail="Processo não encontrado.")
     
+    # Enforce lawyer case isolation (owner_email check)
+    if process.get("owner_email") and process["owner_email"] != user["email"]:
+        if user["role"] not in ["Sócio", "Compliance"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Acesso negado: este caso pertence a outro advogado."
+            )
+
     # Check Ethical Wall constraints
     client = process["client"]
     if client in user.get("conflicted_clients", []):
@@ -205,7 +213,7 @@ def verify_process_access(process_id: str, user: dict = Depends(get_current_user
         )
     
     # Check RBAC permissions: Compliance and TI can review configuration/audits, but cannot read processes
-    if user["role"] in ["Compliance", "TI"] and not user.get("assigned_clients"):
+    if user["role"] in ["Compliance", "TI"] and not user.get("assigned_clients") and not process.get("owner_email"):
         raise HTTPException(
             status_code=403,
             detail="Seu perfil de governança/TI não permite acesso direto a processos de clientes."
