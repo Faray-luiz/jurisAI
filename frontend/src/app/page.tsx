@@ -1269,47 +1269,224 @@ export default function Home() {
     setDrawerOpen(false);
   };
 
-  // Parse assistant response text to render clickable chips
+  // Parse assistant response text to render clickable chips and markdown blocks (headers, tables, bold, lists, etc.)
   const renderMessageWithChips = (text: string, citations: any[] = []) => {
-    const parts = text.split(/(\[[^\]]+\])/g);
-    return parts.map((part, index) => {
-      if (part.startsWith("[") && part.endsWith("]")) {
-        const rawText = part.slice(1, -1);
-        const citeObj = citations.find(c => c.raw_text === rawText || c.citation === rawText);
-        if (citeObj) {
+    if (!text) return null;
+
+    const renderCitationsOnly = (partText: string, citeList: any[] = []) => {
+      const parts = partText.split(/(\[[^\]]+\])/g);
+      return parts.map((part, idx) => {
+        if (part.startsWith("[") && part.endsWith("]")) {
+          const rawText = part.slice(1, -1);
+          const citeObj = citeList.find(c => c.raw_text === rawText || c.citation === rawText);
+          if (citeObj) {
+            return (
+              <CitationChip
+                key={`chip-${idx}`}
+                rawText={rawText}
+                citation={citeObj.citation}
+                status={citeObj.status}
+                onClick={() => handleCiteClick(citeObj)}
+              />
+            );
+          } else {
+            return (
+              <CitationChip
+                key={`chip-${idx}`}
+                rawText={rawText}
+                citation={rawText}
+                status="review"
+                onClick={() => handleCiteClick({
+                  raw_text: rawText,
+                  citation: rawText,
+                  status: "review",
+                  text: "Legislação citada que aguarda verificação síncrona manual pelo compliance.",
+                  source: "Legislação não indexada",
+                  vigencia: "Desconhecida",
+                  conferido_em: "Pendente",
+                  correspondencia: "0%"
+                })}
+              />
+            );
+          }
+        }
+        return part;
+      });
+    };
+
+    const renderInlineContent = (inlineText: string, citeList: any[] = []) => {
+      const boldParts = inlineText.split(/(\*\*[^*]+\*\*)/g);
+      return boldParts.map((boldPart, bIdx) => {
+        if (boldPart.startsWith("**") && boldPart.endsWith("**")) {
+          const cleanBold = boldPart.slice(2, -2);
           return (
-            <CitationChip
-              key={index}
-              rawText={rawText}
-              citation={citeObj.citation}
-              status={citeObj.status}
-              onClick={() => handleCiteClick(citeObj)}
-            />
-          );
-        } else {
-          // Default fallback
-          return (
-            <CitationChip
-              key={index}
-              rawText={rawText}
-              citation={rawText}
-              status="review"
-              onClick={() => handleCiteClick({
-                raw_text: rawText,
-                citation: rawText,
-                status: "review",
-                text: "Legislação citada que aguarda verificação síncrona manual pelo compliance.",
-                source: "Legislação não indexada",
-                vigencia: "Desconhecida",
-                conferido_em: "Pendente",
-                correspondencia: "0%"
-              })}
-            />
+            <strong key={`bold-${bIdx}`} style={{ fontWeight: 600, color: "var(--ink)" }}>
+              {renderCitationsOnly(cleanBold, citeList)}
+            </strong>
           );
         }
+        return renderCitationsOnly(boldPart, citeList);
+      });
+    };
+
+    const lines = text.split("\n");
+    const blocks: React.ReactNode[] = [];
+    
+    let currentTable: string[][] = [];
+    let isInsideTable = false;
+    
+    let currentList: string[] = [];
+    let isInsideList = false;
+
+    const flushTable = (keyIndex: number) => {
+      if (currentTable.length === 0) return;
+      
+      const cleanRows = currentTable.filter(row => {
+        const content = row.join("").trim();
+        return content && !/^[-|]+$/.test(content);
+      });
+      
+      if (cleanRows.length === 0) {
+        currentTable = [];
+        return;
       }
-      return <span key={index}>{part}</span>;
-    });
+      
+      const hasHeader = currentTable.length > 1 && /^[-|:\s]+$/.test(currentTable[1].join("").trim());
+      const headerRow = hasHeader ? cleanRows[0] : null;
+      const bodyRows = hasHeader ? cleanRows.slice(1) : cleanRows;
+      
+      blocks.push(
+        <div key={`table-${keyIndex}`} style={{ overflowX: "auto", margin: "20px 0", borderRadius: "8px", border: "1px solid var(--line)" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px", background: "var(--surface)", fontFamily: "inherit" }}>
+            {headerRow && (
+              <thead>
+                <tr style={{ background: "var(--paper-2)", borderBottom: "1px solid var(--line)" }}>
+                  {headerRow.map((cell, cIdx) => (
+                    <th key={cIdx} style={{ padding: "12px 14px", textAlign: "left", fontWeight: 600, color: "var(--ink)", fontFamily: "'Inter', sans-serif", fontSize: "13px", letterSpacing: "0.02em" }}>
+                      {renderInlineContent(cell.trim(), citations)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+            )}
+            <tbody>
+              {bodyRows.map((row, rIdx) => (
+                <tr key={rIdx} style={{ borderBottom: rIdx < bodyRows.length - 1 ? "1px solid var(--line)" : "none" }}>
+                  {row.map((cell, cIdx) => (
+                    <td key={cIdx} style={{ padding: "12px 14px", color: "var(--ink-soft)" }}>
+                      {renderInlineContent(cell.trim(), citations)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+      
+      currentTable = [];
+    };
+
+    const flushList = (keyIndex: number) => {
+      if (currentList.length === 0) return;
+      blocks.push(
+        <ul key={`list-${keyIndex}`} style={{ margin: "0 0 16px 0", paddingLeft: "24px" }}>
+          {currentList.map((item, iIdx) => (
+            <li key={iIdx} style={{ marginBottom: "8px", color: "var(--ink-soft)" }}>
+              {renderInlineContent(item, citations)}
+            </li>
+          ))}
+        </ul>
+      );
+      currentList = [];
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      
+      // Table check
+      if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
+        if (isInsideList) {
+          flushList(i);
+          isInsideList = false;
+        }
+        isInsideTable = true;
+        const cells = line.split("|").slice(1, -1);
+        currentTable.push(cells);
+        continue;
+      } else if (isInsideTable) {
+        flushTable(i);
+        isInsideTable = false;
+      }
+      
+      // List check
+      if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+        if (isInsideTable) {
+          flushTable(i);
+          isInsideTable = false;
+        }
+        isInsideList = true;
+        currentList.push(trimmed.slice(2));
+        continue;
+      } else if (isInsideList && trimmed !== "") {
+        // Continue list or add new item
+        currentList.push(trimmed);
+        continue;
+      } else if (isInsideList) {
+        flushList(i);
+        isInsideList = false;
+      }
+      
+      // Horizontal rule
+      if (trimmed === "---" || trimmed === "***" || trimmed === "___") {
+        blocks.push(<hr key={`hr-${i}`} style={{ border: "0", borderTop: "1px solid var(--line)", margin: "24px 0" }} />);
+        continue;
+      }
+      
+      // Headers
+      if (trimmed.startsWith("# ")) {
+        blocks.push(
+          <h1 key={`h1-${i}`} style={{ fontSize: "20px", fontWeight: 700, margin: "28px 0 16px 0", color: "var(--bordo)", borderBottom: "1px solid var(--line)", paddingBottom: "8px", letterSpacing: "-0.01em", fontFamily: "'Fraunces', serif" }}>
+            {renderInlineContent(trimmed.slice(2), citations)}
+          </h1>
+        );
+        continue;
+      }
+      if (trimmed.startsWith("## ")) {
+        blocks.push(
+          <h2 key={`h2-${i}`} style={{ fontSize: "16.5px", fontWeight: 600, margin: "24px 0 12px 0", color: "var(--ink)", letterSpacing: "-0.005em", fontFamily: "'Fraunces', serif" }}>
+            {renderInlineContent(trimmed.slice(3), citations)}
+          </h2>
+        );
+        continue;
+      }
+      if (trimmed.startsWith("### ")) {
+        blocks.push(
+          <h3 key={`h3-${i}`} style={{ fontSize: "14px", fontWeight: 600, margin: "20px 0 10px 0", color: "var(--ink-soft)" }}>
+            {renderInlineContent(trimmed.slice(4), citations)}
+          </h3>
+        );
+        continue;
+      }
+      
+      // Normal paragraphs
+      if (trimmed !== "") {
+        blocks.push(
+          <p key={`p-${i}`} style={{ margin: "0 0 16px 0", color: "inherit", fontFamily: "inherit", fontSize: "inherit", lineHeight: "inherit" }}>
+            {renderInlineContent(line, citations)}
+          </p>
+        );
+      } else {
+        blocks.push(<div key={`br-${i}`} style={{ height: "12px" }} />);
+      }
+    }
+    
+    // Flush any remaining
+    if (isInsideTable) flushTable(lines.length);
+    if (isInsideList) flushList(lines.length);
+    
+    return <div className="markdown-content">{blocks}</div>;
   };
 
   if (!currentUser) {
@@ -1929,7 +2106,10 @@ export default function Home() {
                       </div>
 
                       {/* Content */}
-                      <div className={msg.role === "assistant" ? "text-doc" : "text-body"} style={{ whiteSpace: "pre-wrap" }}>
+                      <div 
+                        className={msg.role === "assistant" ? "text-doc" : "text-body"} 
+                        style={msg.role === "assistant" && !msg.error ? {} : { whiteSpace: "pre-wrap" }}
+                      >
                         {msg.role === "assistant" && !msg.error
                           ? renderMessageWithChips(msg.content, msg.citations)
                           : msg.content
