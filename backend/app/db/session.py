@@ -2,7 +2,7 @@ import time
 import json
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-from backend.app.db.models import Base, DBUser, DBProcess, DBAuditLog, DBAgentConfig, DBGroundingDoc, DBSystemSetting, DBMission
+from backend.app.db.models import Base, DBUser, DBProcess, DBAuditLog, DBAgentConfig, DBGroundingDoc, DBSystemSetting, DBMission, DBProcessDocument
 from backend.app.core.config import settings
 import os
 
@@ -32,6 +32,14 @@ Base.metadata.create_all(bind=engine)
 with engine.connect() as conn:
     try:
         conn.execute(text("ALTER TABLE grounding_docs ADD COLUMN agent_task_type VARCHAR DEFAULT 'global'"))
+        conn.commit()
+    except Exception:
+        pass
+
+# Defensively add embedding_json to grounding_docs
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE grounding_docs ADD COLUMN embedding_json TEXT"))
         conn.commit()
     except Exception:
         pass

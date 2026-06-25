@@ -1,11 +1,10 @@
-from fastapi import FastAPI, HTTPException, Depends, Security, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, Depends, Security, UploadFile, File, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import time
 import uuid
 import hashlib
-
 from backend.app.core.config import settings
 from backend.app.core.security import get_current_user, verify_process_access
 from backend.app.db.session import (
@@ -16,6 +15,7 @@ from backend.app.services.router import route_task, generate_response
 from backend.app.services.grounding import verify_citations
 from backend.app.services.guardrails import validate_input_prompt, redact_pii, sanitize_document_content
 from backend.app.services.quota import estimate_request_cost, verify_and_update_quota, commit_quota_usage
+from backend.app.core.crypto import encrypt_text, decrypt_text
 
 app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION)
 
@@ -40,6 +40,7 @@ class ChatPayload(BaseModel):
     task_type: str = "default"  # analise_peticao, rascunho_recurso, default
     model_override: Optional[str] = None
     history: Optional[List[MessagePayload]] = None
+    document_id: Optional[int] = None
 
 class QuotaUpdatePayload(BaseModel):
     email: str
@@ -73,17 +74,108 @@ def get_processes(user: dict = Depends(get_current_user)):
                 accessible_processes.append(proc)
     return accessible_processes
 
+@app.post("/api/v1/processes/{process_id}/documents")
+def upload_process_document(process_id: str, file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    # 1. Ethical Wall checking for this process
+    verify_process_access(process_id, user)
+    
+    # 2. Extract text content from PDF or Text
+    content = ""
+    filename = file.filename or "documento.txt"
+    try:
+        file_bytes = file.file.read()
+        if filename.lower().endswith(".pdf"):
+            from backend.app.services.pdf_extractor import extract_text_from_pdf
+            content = extract_text_from_pdf(file_bytes)
+        else:
+            content = file_bytes.decode("utf-8", errors="ignore")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Falha ao ler arquivo: {str(e)}")
+        
+    if not content.strip():
+        raise HTTPException(status_code=400, detail="O arquivo está vazio ou não possui texto extraível.")
+        
+    # 3. Encrypt the extracted content using AES-256 (Fernet)
+    encrypted = encrypt_text(content)
+    
+    # 4. Save to DB
+    from backend.app.db.session import SessionLocal
+    from backend.app.db.models import DBProcessDocument
+    db = SessionLocal()
+    try:
+        db_doc = DBProcessDocument(
+            process_id=process_id,
+            filename=filename,
+            encrypted_content=encrypted
+        )
+        db.add(db_doc)
+        db.commit()
+        db.refresh(db_doc)
+        return {
+            "id": db_doc.id,
+            "filename": db_doc.filename,
+            "message": "Documento enviado e criptografado com sucesso no banco de dados."
+        }
+    finally:
+        db.close()
+
+@app.get("/api/v1/processes/{process_id}/documents")
+def get_process_documents(process_id: str, user: dict = Depends(get_current_user)):
+    # Verify Ethical Wall access
+    verify_process_access(process_id, user)
+    
+    from backend.app.db.session import SessionLocal
+    from backend.app.db.models import DBProcessDocument
+    db = SessionLocal()
+    try:
+        docs = db.query(DBProcessDocument).filter(DBProcessDocument.process_id == process_id).all()
+        return [
+            {
+                "id": d.id,
+                "process_id": d.process_id,
+                "filename": d.filename,
+                "created_at": d.created_at
+            }
+            for d in docs
+        ]
+    finally:
+        db.close()
+
 @app.post("/api/v1/chat")
 def chat_interaction(payload: ChatPayload, user: dict = Depends(get_current_user)):
     # 1. Guardrail: Anti Prompt Injection
+    # Run strictly on the user's explicit instructions to prevent false positives on attached legal documents
     validate_input_prompt(payload.prompt)
     
-    # 2. Ethical Wall checking
-    if payload.process_id and payload.process_id != "N/A":
+    # 2. Ethical Wall checking & Decrypt Document
+    decrypted_content = ""
+    doc_filename = ""
+    if payload.document_id:
+        from backend.app.db.session import SessionLocal
+        from backend.app.db.models import DBProcessDocument
+        db = SessionLocal()
+        try:
+            doc = db.query(DBProcessDocument).filter(DBProcessDocument.id == payload.document_id).first()
+            if not doc:
+                raise HTTPException(status_code=404, detail="Documento anexo não encontrado no banco de dados.")
+            # Verify access to the process of this document (Ethical Wall)
+            verify_process_access(doc.process_id, user)
+            
+            # Decrypt and sanitize document content to prevent data-vs-instruction confusion (as per PRD)
+            decrypted_content = sanitize_document_content(decrypt_text(doc.encrypted_content))
+            doc_filename = doc.filename
+        finally:
+            db.close()
+    elif payload.process_id and payload.process_id != "N/A":
         verify_process_access(payload.process_id, user)
         
+    # Construct prompt with attached document content if available
+    final_prompt = payload.prompt
+    if decrypted_content:
+        final_prompt = f"{payload.prompt}\n\nDocumento Anexo:\n{decrypted_content}"
+        
     # 3. Model routing logic
-    model, provider = route_task(payload.prompt, payload.task_type)
+    model, provider = route_task(final_prompt, payload.task_type)
     if payload.model_override:
         model = payload.model_override
         
@@ -103,8 +195,10 @@ def chat_interaction(payload: ChatPayload, user: dict = Depends(get_current_user
                 model = "gemini-3.5-flash"
         
     # 4. Quota check: pre-flight estimation
-    estimated_cost = estimate_request_cost(payload.prompt, model)
+    estimated_cost = estimate_request_cost(final_prompt, model)
     quota_status = verify_and_update_quota(user["email"], estimated_cost)
+    
+    audit_prompt = payload.prompt + (f"\n\n[Anexo: {doc_filename}]" if doc_filename else "")
     
     if not quota_status["allowed"]:
         add_audit_log(
@@ -114,7 +208,7 @@ def chat_interaction(payload: ChatPayload, user: dict = Depends(get_current_user
             model,
             0.0,
             "Rejeitado (Cota Insuficiente)",
-            payload.prompt,
+            audit_prompt,
             quota_status["message"],
             "Bloqueado"
         )
@@ -123,7 +217,7 @@ def chat_interaction(payload: ChatPayload, user: dict = Depends(get_current_user
     # 5. Generate LLM response (or simulation)
     history_list = [{"role": h.role, "content": h.content} for h in payload.history] if payload.history else None
     raw_response, model_used, input_tokens, output_tokens = generate_response(
-        payload.prompt, payload.task_type, payload.model_override, history=history_list
+        final_prompt, payload.task_type, payload.model_override, history=history_list
     )
     
     # 6. Sychronous Grounding check
@@ -153,7 +247,7 @@ def chat_interaction(payload: ChatPayload, user: dict = Depends(get_current_user
         model_used,
         actual_cost,
         "Sucesso",
-        payload.prompt,
+        audit_prompt,
         sanitized_response,
         grounding_status
     )

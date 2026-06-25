@@ -202,6 +202,64 @@ def run_tests():
     assert "user_count" in metrics
     print("Endpoints de Administração OK!")
     
+    # 6. Test Crypto, Document Upload, & Semantic RAG (Phase 1)
+    print("\n6. Testando Criptografia, Upload de Documentos e RAG Semântico (Fase 1)...")
+    
+    # A. Test Crypto Encryption/Decryption
+    from backend.app.core.crypto import encrypt_text, decrypt_text
+    secret_text = "Esta é uma petição confidencial contendo segredo de justiça."
+    encrypted = encrypt_text(secret_text)
+    assert encrypted != secret_text
+    decrypted = decrypt_text(encrypted)
+    assert decrypted == secret_text
+    print("Criptografia AES-256 Fernet OK!")
+    
+    # B. Test Document Upload and Retrieval via API
+    import io
+    doc_data = {"file": ("peticao_teste.txt", io.BytesIO(b"Fatos do processo de disputa de terras..."), "text/plain")}
+    upload_resp = client.post("/api/v1/processes/PROC-001/documents", files=doc_data, headers=headers_socio)
+    assert upload_resp.status_code == 200
+    upload_json = upload_resp.json()
+    assert "id" in upload_json
+    assert upload_json["filename"] == "peticao_teste.txt"
+    doc_id = upload_json["id"]
+    print("Upload de Documento Criptografado OK!")
+    
+    # C. Test Document List
+    list_resp = client.get("/api/v1/processes/PROC-001/documents", headers=headers_socio)
+    assert list_resp.status_code == 200
+    docs_list = list_resp.json()
+    assert any(d["id"] == doc_id for d in docs_list)
+    print("Listagem de Documentos de Processo OK!")
+    
+    # D. Test Chat using document_id
+    from backend.app.db.session import SessionLocal
+    from backend.app.db.models import DBSystemSetting
+    db = SessionLocal()
+    try:
+        budget_setting = db.query(DBSystemSetting).filter(DBSystemSetting.key == "enable_global_budget").first()
+        if budget_setting:
+            budget_setting.value = "false"
+        else:
+            db.add(DBSystemSetting(key="enable_global_budget", value="false"))
+        db.commit()
+    finally:
+        db.close()
+        
+    chat_payload = {
+        "prompt": "Resuma os fatos principais do documento em anexo.",
+        "process_id": "PROC-001",
+        "task_type": "default",
+        "document_id": doc_id
+    }
+    chat_resp = client.post("/api/v1/chat", json=chat_payload, headers=headers_socio)
+    if chat_resp.status_code != 200:
+        print(f"Chat falhou com status {chat_resp.status_code}: {chat_resp.text}")
+    assert chat_resp.status_code == 200
+    chat_json = chat_resp.json()
+    assert "response" in chat_json
+    print("Chat com Referência Segura de Documento (ID) OK!")
+    
     print("\n=== Todos os Testes Passaram com Sucesso! ===")
 
 if __name__ == "__main__":

@@ -92,7 +92,7 @@ class DBGroundingDoc(Base):
     source = Column(String, nullable=False) # LexML - Código Civil
     is_active = Column(Boolean, default=True)
     agent_task_type = Column(String, nullable=True, default="global") # analise_peticao, rascunho_recurso, global, etc.
-
+    embedding_json = Column(Text, nullable=True) # JSON list of floats for semantic search
 
 
 class DBSystemSetting(Base):
@@ -113,4 +113,14 @@ class DBMission(Base):
     description = Column(String, nullable=False, default="")             # subtexto do card
     default_prompt = Column(Text, nullable=False, default="")            # prompt pré-preenchido ao clicar
     is_active = Column(Boolean, default=True)
+    created_at = Column(Float, default=time.time)
+
+
+class DBProcessDocument(Base):
+    __tablename__ = "process_documents"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    process_id = Column(String, index=True, nullable=False)
+    filename = Column(String, nullable=False)
+    encrypted_content = Column(Text, nullable=False)
     created_at = Column(Float, default=time.time)

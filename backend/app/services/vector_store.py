@@ -1,5 +1,63 @@
 import re
+import json
+import math
 from typing import List, Dict, Any, Optional
+from backend.app.core.config import settings
+
+# ---------------------------------------------------------------------------
+# Vector Embedding and Cosine Similarity Helpers
+# ---------------------------------------------------------------------------
+
+def generate_embedding(text: str) -> List[float]:
+    """
+    Generates a 1536-dimensional vector embedding for the given text.
+    Calls the real OpenAI API if the key is configured, otherwise falls back
+    to a deterministic mock embedding vector for development stability.
+    """
+    is_openai_mock = settings.OPENAI_API_KEY == "mock-openai-key" or not settings.OPENAI_API_KEY
+    
+    if is_openai_mock:
+        # Generate a deterministic pseudo-random embedding vector
+        import random
+        h = hash(text)
+        random.seed(h)
+        vector = [random.uniform(-1.0, 1.0) for _ in range(1536)]
+        # Normalize vector to unit length
+        mag = sum(x*x for x in vector)**0.5
+        if mag > 0:
+            vector = [x/mag for x in vector]
+        return vector
+        
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        response = client.embeddings.create(
+            input=[text],
+            model="text-embedding-3-small"
+        )
+        return response.data[0].embedding
+    except Exception as e:
+        print(f"[Embedding Error] Calling OpenAI failed: {e}. Falling back to mock vector.")
+        import random
+        random.seed(hash(text))
+        vector = [random.uniform(-1.0, 1.0) for _ in range(1536)]
+        mag = sum(x*x for x in vector)**0.5
+        if mag > 0:
+            vector = [x/mag for x in vector]
+        return vector
+
+def dot_product(v1: List[float], v2: List[float]) -> float:
+    return sum(x * y for x, y in zip(v1, v2))
+
+def magnitude(v: List[float]) -> float:
+    return math.sqrt(sum(x * x for x in v))
+
+def cosine_similarity(v1: List[float], v2: List[float]) -> float:
+    mag1 = magnitude(v1)
+    mag2 = magnitude(v2)
+    if not mag1 or not mag2:
+        return 0.0
+    return dot_product(v1, v2) / (mag1 * mag2)
 
 # ---------------------------------------------------------------------------
 # Text Processing Helpers
@@ -95,31 +153,16 @@ def query_vector_store(
     query: str,
     task_type: str = "default",
     top_k: int = 3,
-    threshold: float = 0.18
+    threshold: float = 0.15
 ) -> List[Dict[str, Any]]:
     """
-    Performs a mission-aware semantic similarity search over the grounding
-    document corpus and returns up to `top_k` ranked results.
-
-    Strategy:
-      1. Filter documents by mission: load only docs tagged with the active
-         agent task_type OR tagged as "global" (cross-mission knowledge).
-      2. Score each document with the hybrid similarity function.
-      3. Return the top_k results that exceed the minimum threshold.
-
-    Args:
-        query:     The user's natural language input text.
-        task_type: The active agent mission (e.g. "analise_peticao",
-                   "rascunho_recurso", "default"). Defaults to "default".
-        top_k:     Maximum number of documents to return.
-        threshold: Minimum similarity score to be considered a match.
-
-    Returns:
-        List of dicts with keys: citation, text, source, score, agent_task_type.
+    Performs a real semantic similarity search (Cosine Similarity of Embeddings)
+    over the grounding document corpus.
     """
     from backend.app.db.session import SessionLocal
     from backend.app.db.models import DBGroundingDoc
     from sqlalchemy import or_
+    import json
 
     db = SessionLocal()
     try:
@@ -141,34 +184,79 @@ def query_vector_store(
                 .all()
             )
         else:
-            # For "default" or unknown missions, load everything active
             docs = (
                 db.query(DBGroundingDoc)
                 .filter(DBGroundingDoc.is_active == True)
                 .all()
             )
+            
+        if not docs:
+            return []
+
+        # Check if we are running in simulation/mock mode
+        is_openai_mock = settings.OPENAI_API_KEY == "mock-openai-key" or not settings.OPENAI_API_KEY
+        
+        scored = []
+        if is_openai_mock:
+            # Fall back to high-fidelity hybrid Jaccard-based scoring in mock/simulation mode
+            for doc in docs:
+                score = compute_hybrid_score(query, doc.text, doc.citation)
+                # Keep a slightly higher threshold for mock Jaccard queries as in legacy (0.18)
+                mock_threshold = max(threshold, 0.18)
+                if score >= mock_threshold:
+                    scored.append({
+                        "citation": doc.citation,
+                        "text": doc.text,
+                        "source": doc.source,
+                        "score": round(score, 4),
+                        "agent_task_type": doc.agent_task_type or "global"
+                    })
+        else:
+            # Real mode: Cosine Similarity of Embeddings
+            query_embedding = generate_embedding(query)
+            for doc in docs:
+                # Lazy-load/compute document embedding if missing
+                doc_embedding = None
+                if doc.embedding_json:
+                    try:
+                        doc_embedding = json.loads(doc.embedding_json)
+                    except Exception:
+                        pass
+                        
+                if not doc_embedding:
+                    # Generate and persist the embedding in the database
+                    doc_embedding = generate_embedding(doc.text)
+                    doc.embedding_json = json.dumps(doc_embedding)
+                    db.add(doc)
+                    db.commit() # Save the generated embedding for future queries!
+                    
+                # Compute cosine similarity
+                score = cosine_similarity(query_embedding, doc_embedding)
+                
+                # Precision boost if the article numbers match exactly
+                query_digits = extract_article_numbers(query)
+                citation_digits = extract_article_numbers(doc.citation)
+                if query_digits and citation_digits and query_digits & citation_digits:
+                    score += 0.10 # Add precision boost for exact article number matches!
+                elif query_digits and citation_digits and not query_digits & citation_digits:
+                    # Hard filter: if query mentions specific article numbers but they don't
+                    # appear in this citation, reduce score to 0 to prevent false matches
+                    score = 0.0
+
+                if score >= threshold:
+                    scored.append({
+                        "citation": doc.citation,
+                        "text": doc.text,
+                        "source": doc.source,
+                        "score": round(score, 4),
+                        "agent_task_type": doc.agent_task_type or "global"
+                    })
+                
+        # Sort descending by score and return top_k
+        scored.sort(key=lambda x: x["score"], reverse=True)
+        return scored[:top_k]
     finally:
         db.close()
-
-    if not docs:
-        return []
-
-    # Score all candidate documents
-    scored = []
-    for doc in docs:
-        score = compute_hybrid_score(query, doc.text, doc.citation)
-        if score >= threshold:
-            scored.append({
-                "citation": doc.citation,
-                "text": doc.text,
-                "source": doc.source,
-                "score": round(score, 4),
-                "agent_task_type": doc.agent_task_type or "global"
-            })
-
-    # Sort descending by score and return top_k
-    scored.sort(key=lambda x: x["score"], reverse=True)
-    return scored[:top_k]
 
 
 # ---------------------------------------------------------------------------

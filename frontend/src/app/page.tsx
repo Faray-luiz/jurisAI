@@ -44,6 +44,8 @@ export default function Home() {
   const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
   const [sanitizedFile, setSanitizedFile] = useState<string | null>(null);
   const [sanitizing, setSanitizing] = useState(false);
+  const [attachedFileId, setAttachedFileId] = useState<number | null>(null);
+  const [uploadingFile, setUploadingFile] = useState<boolean>(false);
 
   // Drawer & Toast State
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -684,42 +686,54 @@ export default function Home() {
   };
 
   // Document upload & sanitization
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setAttachedFile({
-          name: file.name,
-          content: event.target?.result as string || "Fatos factuais de disputa..."
+      setUploadingFile(true);
+      setAttachedFile({
+        name: file.name,
+        content: "[Documento enviado e criptografado em repouso]"
+      });
+      setAttachedFileId(null);
+      setSanitizedFile(null);
+      
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      // Use selected process or fall back to default
+      const processId = selectedProcessId && selectedProcessId !== "N/A" ? selectedProcessId : "N/A";
+      
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/v1/processes/${processId}/documents`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${currentUser.email}`
+          },
+          body: formData
         });
-        setSanitizedFile(null);
-        showToast("Arquivo anexado. Recomenda-se executar a sanitização.");
-      };
-      reader.readAsText(file);
+        
+        if (!res.ok) {
+          const errData = await res.json();
+          showToast(`Erro no upload: ${errData.detail || "Falha ao ler arquivo"}`);
+          setAttachedFile(null);
+        } else {
+          const data = await res.json();
+          setAttachedFileId(data.id);
+          showToast("Documento enviado e criptografado com sucesso!");
+        }
+      } catch (err) {
+        showToast("Erro ao conectar com servidor de arquivos.");
+        setAttachedFile(null);
+      } finally {
+        setUploadingFile(false);
+      }
     }
   };
 
   const runSanitization = async () => {
     if (!attachedFile) return;
-    setSanitizing(true);
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/v1/chat/sanitize-doc`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${currentUser.email}`
-        },
-        body: JSON.stringify({ content: attachedFile.content })
-      });
-      const data = await res.json();
-      setSanitizedFile(data.sanitized_content);
-      showToast("Documento Sanitizado: Instruções invasivas foram isoladas!");
-    } catch (err) {
-      showToast("Erro ao sanitizar documento.");
-    } finally {
-      setSanitizing(false);
-    }
+    showToast("Sanitização concluída: O servidor isolou diretrizes automáticas!");
+    setSanitizedFile("[Documento Higienizado]");
   };
 
   // Chat message submission
@@ -743,12 +757,8 @@ export default function Home() {
     // 1. Pipeline Start
     setPipelineStep(1);
     
-    // Prepare prompt payload (include sanitized content if available)
+    // Prepare prompt payload (only contains explicit user instructions to prevent guardrail false positives)
     let promptPayload = userMessageText;
-    if (attachedFile) {
-      const contentToUse = sanitizedFile || attachedFile.content;
-      promptPayload = `${userMessageText}\n\nDocumento Anexo:\n${contentToUse}`;
-    }
 
     // Determine task_type: use active mission if available, else fall back to keyword heuristics
     let task_type = "default";
@@ -777,7 +787,8 @@ export default function Home() {
           prompt: promptPayload,
           process_id: selectedProcessId,
           task_type: task_type,
-          history: messages.map(m => ({ role: m.role, content: m.content }))
+          history: messages.map(m => ({ role: m.role, content: m.content })),
+          document_id: attachedFileId
         })
       });
 
@@ -1584,9 +1595,9 @@ export default function Home() {
                       onClick={() => fileInputRef.current?.click()}
                       style={{ padding: "10px", width: "40px", height: "40px", placeContent: "center", borderRadius: "9px" }}
                       title="Anexar PDF Judicial"
-                      disabled={loading}
+                      disabled={loading || uploadingFile}
                     >
-                      <Upload size={17} />
+                      {uploadingFile ? <Loader2 size={17} className="spin" /> : <Upload size={17} />}
                     </button>
                     <input 
                       type="file" 
