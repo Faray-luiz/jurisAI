@@ -183,6 +183,13 @@ def get_current_user(token: str = Depends(api_key_header)) -> dict:
     raise HTTPException(status_code=401, detail="Acesso negado: Usuário não cadastrado na plataforma.")
 
 def verify_process_access(process_id: str, user: dict = Depends(get_current_user)) -> dict:
+    if process_id == "session" or process_id.startswith("session:"):
+        if process_id.startswith("session:"):
+            email_owner = process_id.split(":", 1)[1]
+            if email_owner != user["email"]:
+                raise HTTPException(status_code=403, detail="Acesso não autorizado a este documento de sessão.")
+        return {"id": process_id, "title": "Sessão Ativa", "client": "N/A", "matter": "Análise Geral"}
+
     # Find the process in DB
     processes = get_all_db_processes()
     process = next((p for p in processes if p["id"] == process_id), None)

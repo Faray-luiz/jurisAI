@@ -289,6 +289,38 @@ def run_tests():
     assert "response" in chat_json
     print("Chat com Referência Segura de Documento (ID) OK!")
     
+    # E. Test Direct PDF/TXT Upload to Session (Fase 3 / Memória Compartilhada)
+    print("\nE. Testando Upload Direto de Processo para Memória de Sessão...")
+    session_doc_data = {"file": ("processo_sessao.txt", io.BytesIO(b"Dados extraidos do processo judicial em PDF para memoria de sessao..."), "text/plain")}
+    upload_sess_resp = client.post("/api/v1/processes/session/documents", files=session_doc_data, headers=headers_socio)
+    assert upload_sess_resp.status_code == 200
+    upload_sess_json = upload_sess_resp.json()
+    assert "id" in upload_sess_json
+    assert upload_sess_json["filename"] == "processo_sessao.txt"
+    sess_doc_id = upload_sess_json["id"]
+    
+    # Verify that the document is saved with process_id = f"session:{email}"
+    from backend.app.db.models import DBProcessDocument
+    db = SessionLocal()
+    try:
+        saved_doc = db.query(DBProcessDocument).filter(DBProcessDocument.id == sess_doc_id).first()
+        assert saved_doc is not None
+        assert saved_doc.process_id == "session:roberto@jurisai.com.br"
+    finally:
+        db.close()
+        
+    # Test chat interaction utilizing the session process document (should succeed and enrich prompt)
+    sess_chat_payload = {
+        "prompt": "Analise a petição do processo em memória.",
+        "process_id": "session",
+        "task_type": "default",
+        "document_id": sess_doc_id
+    }
+    sess_chat_resp = client.post("/api/v1/chat", json=sess_chat_payload, headers=headers_socio)
+    assert sess_chat_resp.status_code == 200
+    assert "response" in sess_chat_resp.json()
+    print("Upload Direto e Memória Compartilhada de Sessão OK!")
+    
     # 7. Test LexML & Resilience (Phase 2)
     print("\n7. Testando LexML e Resiliência (Fase 2)...")
     

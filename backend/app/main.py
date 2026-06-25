@@ -79,6 +79,8 @@ def upload_process_document(process_id: str, file: UploadFile = File(...), user:
     # 1. Ethical Wall checking for this process
     verify_process_access(process_id, user)
     
+    target_process_id = f"session:{user['email']}" if process_id == "session" else process_id
+    
     # 2. Extract text content from PDF or Text
     content = ""
     filename = file.filename or "documento.txt"
@@ -104,7 +106,7 @@ def upload_process_document(process_id: str, file: UploadFile = File(...), user:
     db = SessionLocal()
     try:
         db_doc = DBProcessDocument(
-            process_id=process_id,
+            process_id=target_process_id,
             filename=filename,
             encrypted_content=encrypted
         )
@@ -169,10 +171,18 @@ def chat_interaction(payload: ChatPayload, user: dict = Depends(get_current_user
     elif payload.process_id and payload.process_id != "N/A":
         verify_process_access(payload.process_id, user)
         
-    # Construct prompt with attached document content if available
+    # Construct prompt with attached document content if available (Shared Process Memory)
     final_prompt = payload.prompt
     if decrypted_content:
-        final_prompt = f"{payload.prompt}\n\nDocumento Anexo:\n{decrypted_content}"
+        final_prompt = (
+            f"{payload.prompt}\n\n"
+            f"[MEMÓRIA COMPARTILHADA DO PROCESSO ATIVO]\n"
+            f"O seguinte documento representa o processo sob análise nesta sessão. "
+            f"Utilize as informações extraídas dele como contexto prioritário para executar a sua missão:\n"
+            f"---\n"
+            f"{decrypted_content}\n"
+            f"---\n"
+        )
         
     # 3. Model routing logic
     model, provider = route_task(final_prompt, payload.task_type)

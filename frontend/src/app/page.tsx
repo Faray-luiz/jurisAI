@@ -33,6 +33,8 @@ export default function Home() {
   const [usersList, setUsersList] = useState<any[]>([]);
   const [processes, setProcesses] = useState<any[]>([]);
   const [selectedProcessId, setSelectedProcessId] = useState<string>("N/A");
+  const [sessionFile, setSessionFile] = useState<{ id: number; name: string } | null>(null);
+  const sessionFileInputRef = useRef<HTMLInputElement>(null);
   
   // Chat state
   const [messages, setMessages] = useState<Message[]>([]);
@@ -693,6 +695,41 @@ export default function Home() {
   };
 
   // Document upload & sanitization
+  const handleSessionFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadingFile(true);
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/v1/processes/session/documents`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${currentUser.email}`
+          },
+          body: formData
+        });
+        
+        if (!res.ok) {
+          const errData = await res.json();
+          showToast(`Erro no upload: ${errData.detail || "Falha ao ler arquivo"}`);
+        } else {
+          const data = await res.json();
+          setSessionFile({
+            id: data.id,
+            name: file.name
+          });
+          showToast("Processo carregado para a memória da sessão com sucesso!");
+        }
+      } catch (err) {
+        showToast("Erro ao conectar com o servidor.");
+      } finally {
+        setUploadingFile(false);
+      }
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -792,10 +829,10 @@ export default function Home() {
         },
         body: JSON.stringify({
           prompt: promptPayload,
-          process_id: selectedProcessId,
+          process_id: sessionFile ? "session" : selectedProcessId,
           task_type: task_type,
           history: messages.map(m => ({ role: m.role, content: m.content })),
-          document_id: attachedFileId
+          document_id: sessionFile ? sessionFile.id : attachedFileId
         })
       });
 
@@ -1420,34 +1457,69 @@ export default function Home() {
                       Cada citação gerada é confrontada síncronamente contra fontes oficiais da legislação.
                     </p>
 
-                    {/* Context selection */}
-                    <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "20px", marginBottom: "30px", boxShadow: "var(--shadow)" }}>
-                      <label className="text-label" style={{ display: "block", marginBottom: "8px" }}>
-                        Vincular Processo / Matéria (Muralha Ética ativa)
-                      </label>
-                      <select 
-                        value={selectedProcessId}
-                        onChange={(e) => setSelectedProcessId(e.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "12px",
-                          borderRadius: "9px",
-                          border: "1px solid var(--line)",
-                          fontSize: "14px",
-                          fontFamily: "inherit",
-                          background: "#fff",
-                          cursor: "pointer",
-                          color: "var(--ink)",
-                          outline: "none"
-                        }}
-                      >
-                        <option value="N/A">Nenhum processo vinculado (Uso Geral)</option>
-                        {processes.map(p => (
-                          <option key={p.id} value={p.id}>
-                            {p.client} — {p.title} ({p.process_number})
-                          </option>
-                        ))}
-                      </select>
+                    {/* Memória Compartilhada do Processo (Fase 3 / Upload Direto) */}
+                    <div style={{ 
+                      background: "var(--surface)", 
+                      border: "1px dashed var(--bordo)", 
+                      borderRadius: "14px", 
+                      padding: "24px", 
+                      marginBottom: "30px", 
+                      boxShadow: "var(--shadow)",
+                      textAlign: "center",
+                      position: "relative",
+                      overflow: "hidden"
+                    }}>
+                      {!sessionFile ? (
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "center", color: "var(--bordo)", marginBottom: "12px" }}>
+                            <Upload size={32} />
+                          </div>
+                          <h3 style={{ fontSize: "15px", fontWeight: 600, color: "var(--ink)", marginBottom: "6px" }}>
+                            Carregar Processo para Análise (PDF/TXT)
+                          </h3>
+                          <p style={{ fontSize: "12px", color: "var(--ink-soft)", marginBottom: "16px", maxWidth: "400px", margin: "0 auto 16px" }}>
+                            O texto extraído do processo será criptografado e servirá como **Memória de Sessão** (contexto compartilhado) para todas as missões disponíveis.
+                          </p>
+                          <button 
+                            type="button" 
+                            className="btn" 
+                            onClick={() => sessionFileInputRef.current?.click()}
+                            disabled={uploadingFile}
+                            style={{ margin: "0 auto" }}
+                          >
+                            {uploadingFile ? <Loader2 size={15} className="spin" /> : "Selecionar Arquivo PDF / TXT"}
+                          </button>
+                          <input 
+                            type="file" 
+                            ref={sessionFileInputRef}
+                            onChange={handleSessionFileChange}
+                            style={{ display: "none" }}
+                            accept=".pdf,.txt"
+                          />
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textAlign: "left" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                            <div style={{ background: "rgba(122,46,46,0.08)", color: "var(--bordo)", width: "42px", height: "42px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <FileText size={20} />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--ink)" }}>{sessionFile.name}</div>
+                              <div style={{ fontSize: "11.5px", color: "var(--verde)", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
+                                <CheckCircle size={12} /> Memória Compartilhada Ativa (Criptografada em Repouso)
+                              </div>
+                            </div>
+                          </div>
+                          <button 
+                            type="button" 
+                            className="btn ghost" 
+                            onClick={() => setSessionFile(null)}
+                            style={{ color: "var(--ink-faint)", fontSize: "12px", padding: "6px 12px" }}
+                          >
+                            Limpar Memória
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Central de Missões */}
@@ -1467,6 +1539,36 @@ export default function Home() {
                         ))
                       )}
                     </div>
+                  </div>
+                )}
+
+                {/* Memória Compartilhada Banner (Quando há mensagens e a memória está ativa) */}
+                {messages.length > 0 && sessionFile && (
+                  <div style={{ 
+                    background: "var(--surface)", 
+                    border: "1px solid var(--line)", 
+                    borderRadius: "10px", 
+                    padding: "10px 16px", 
+                    marginBottom: "20px", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "space-between", 
+                    fontSize: "12.5px",
+                    boxShadow: "var(--shadow-sm)"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--ink)" }}>
+                      <FileText size={15} style={{ color: "var(--bordo)" }} />
+                      <span style={{ fontWeight: 600 }}>Memória de Sessão:</span>
+                      <span style={{ color: "var(--ink-soft)" }}>{sessionFile.name}</span>
+                      <span style={{ color: "var(--verde)", fontWeight: 600, fontSize: "11px", marginLeft: "6px" }}>• Ativa</span>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => setSessionFile(null)} 
+                      style={{ background: "transparent", border: "none", color: "var(--ink-faint)", cursor: "pointer", fontSize: "11.5px" }}
+                    >
+                      Limpar
+                    </button>
                   </div>
                 )}
 
