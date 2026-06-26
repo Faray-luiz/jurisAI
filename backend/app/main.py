@@ -447,6 +447,37 @@ def chat_interaction(payload: ChatPayload, user: dict = Depends(get_current_user
     # 7. Output sanitization: PII redaction
     sanitized_response = redact_pii(raw_response)
     
+    # 7.1 Auto-save mission artifact to case documents if it is a persistent case and a specific mission
+    if is_persistent_case and payload.task_type and payload.task_type != "default":
+        db_save = SessionLocal()
+        try:
+            from backend.app.db.models import DBMission, DBProcessDocument
+            from backend.app.core.crypto import encrypt_text
+            
+            # Query mission to get display name
+            mission = db_save.query(DBMission).filter(DBMission.task_type == payload.task_type).first()
+            mission_name = mission.display_name if mission else payload.task_type.replace("_", " ").title()
+            
+            filename = f"Minuta - {mission_name}.md"
+            
+            # Encrypt the sanitized response
+            encrypted_content = encrypt_text(sanitized_response)
+            
+            db_doc = DBProcessDocument(
+                process_id=payload.process_id,
+                filename=filename,
+                encrypted_content=encrypted_content,
+                created_at=time.time()
+            )
+            db_save.add(db_doc)
+            db_save.commit()
+            print(f"Artifact successfully auto-saved as {filename} for process {payload.process_id}")
+        except Exception as e:
+            db_save.rollback()
+            print(f"Error auto-saving mission artifact: {e}")
+        finally:
+            db_save.close()
+    
     # Calculate final cost
     price_info = settings.MODEL_PRICING.get(model_used, {"input": 0.00015, "output": 0.0006})
     actual_cost = ((input_tokens / 1000.0) * price_info["input"]) + ((output_tokens / 1000.0) * price_info["output"])

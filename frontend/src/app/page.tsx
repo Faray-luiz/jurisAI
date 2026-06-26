@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { 
   Send, ShieldAlert, DollarSign, Loader2, Sparkles, 
   Upload, FileText, CheckCircle, AlertTriangle, ShieldCheck, 
-  Search, Edit3, HelpCircle, Copy, Cpu, ChevronDown, ChevronRight, Download
+  Search, Edit3, HelpCircle, Copy, Cpu, ChevronDown, ChevronRight, Download,
+  RefreshCw, FileEdit
 } from "lucide-react";
 
 import Sidebar from "@/components/Sidebar";
@@ -908,6 +909,164 @@ export default function Home() {
         setUploadingFile(false);
       }
     }
+  };
+
+  const parseInlineMarkdown = (text: string): string => {
+    let clean = text.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    clean = clean.replace(/\[([^\]]+)\]/g, "<span style='background-color: #e6f3ff; border-radius: 3px; padding: 1px 4px; font-weight: 500;'>$1</span>");
+    return clean;
+  };
+
+  const convertMarkdownToHtml = (text: string): string => {
+    const lines = text.split("\n");
+    let html = "";
+    let isInsideTable = false;
+    let isInsideList = false;
+    
+    for (let line of lines) {
+      let trimmed = line.trim();
+      
+      // Table
+      if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
+        if (isInsideList) {
+          html += "</ul>";
+          isInsideList = false;
+        }
+        if (!isInsideTable) {
+          html += "<table style='width: 100%; border-collapse: collapse; margin: 16px 0; border: 1px solid #ddd;'>";
+          isInsideTable = true;
+        }
+        const cells = trimmed.split("|").slice(1, -1);
+        const isHeaderSep = cells.every(c => /^[-:\s]+$/.test(c.trim()));
+        if (!isHeaderSep) {
+          html += "<tr>";
+          const isHeader = !html.includes("</th>");
+          for (let cell of cells) {
+            const tag = isHeader ? "th" : "td";
+            const bgStyle = isHeader ? "background-color: #f9f9f9; font-weight: bold;" : "";
+            html += `<${tag} style='border: 1px solid #ddd; padding: 10px 12px; text-align: left; ${bgStyle}'>${parseInlineMarkdown(cell.trim())}</${tag}>`;
+          }
+          html += "</tr>";
+        }
+        continue;
+      } else if (isInsideTable) {
+        html += "</table>";
+        isInsideTable = false;
+      }
+      
+      // List
+      if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+        if (!isInsideList) {
+          html += "<ul style='margin-bottom: 12px; padding-left: 24px;'>";
+          isInsideList = true;
+        }
+        html += `<li style='margin-bottom: 6px;'>${parseInlineMarkdown(trimmed.slice(2))}</li>`;
+        continue;
+      } else if (isInsideList) {
+        html += "</ul>";
+        isInsideList = false;
+      }
+      
+      // Horizontal Rule
+      if (trimmed === "---" || trimmed === "***" || trimmed === "___") {
+        html += "<hr style='border: 0; border-top: 1px solid #ddd; margin: 20px 0;' />";
+        continue;
+      }
+      
+      // Headers
+      if (trimmed.startsWith("# ")) {
+        html += `<h1 style='color: #800020; font-size: 18pt; border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-top: 24px; margin-bottom: 12px;'>${parseInlineMarkdown(trimmed.slice(2))}</h1>`;
+        continue;
+      }
+      if (trimmed.startsWith("## ")) {
+        html += `<h2 style='color: #333; font-size: 14pt; margin-top: 20px; margin-bottom: 10px;'>${parseInlineMarkdown(trimmed.slice(3))}</h2>`;
+        continue;
+      }
+      if (trimmed.startsWith("### ")) {
+        html += `<h3 style='color: #555; font-size: 12pt; margin-top: 16px; margin-bottom: 8px;'>${parseInlineMarkdown(trimmed.slice(4))}</h3>`;
+        continue;
+      }
+      
+      // Paragraph
+      if (trimmed !== "") {
+        html += `<p style='margin-bottom: 12px; line-height: 1.6;'>${parseInlineMarkdown(line)}</p>`;
+      } else {
+        html += "<br />";
+      }
+    }
+    
+    if (isInsideTable) html += "</table>";
+    if (isInsideList) html += "</ul>";
+    
+    return html;
+  };
+
+  const exportToWord = (content: string, filename: string) => {
+    const htmlContent = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <title>${filename}</title>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #333; padding: 20px; }
+          h1 { color: #800020; font-size: 18pt; border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-top: 24px; }
+          h2 { color: #333; font-size: 14pt; margin-top: 20px; }
+          h3 { color: #555; font-size: 12pt; margin-top: 16px; }
+          table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+          th { background-color: #f9f9f9; border: 1px solid #ddd; padding: 10px 12px; text-align: left; font-weight: bold; }
+          td { border: 1px solid #ddd; padding: 10px 12px; }
+          p { margin-bottom: 12px; }
+          ul { margin-bottom: 12px; padding-left: 24px; }
+          li { margin-bottom: 6px; }
+          strong { font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        ${convertMarkdownToHtml(content)}
+      </body>
+      </html>
+    `;
+    
+    const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Minuta exportada para Word com sucesso!");
+  };
+
+  const exportToMarkdown = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Minuta exportada em Markdown com sucesso!");
+  };
+
+  const copyToClipboard = (content: string) => {
+    navigator.clipboard.writeText(content);
+    showToast("Minuta copiada para a área de transferência!");
+  };
+
+  const handleAdjustPrompt = (index: number) => {
+    if (index > 0 && messages[index - 1].role === "user") {
+      const rawUserPrompt = messages[index - 1].content.split("\n\n[Anexo:")[0];
+      setInputText(rawUserPrompt);
+    }
+    const inputEl = document.getElementById("chat-input-field");
+    if (inputEl) {
+      inputEl.focus();
+    }
+    showToast("Instrução anterior copiada. Ajuste o prompt abaixo para refazer a análise.");
   };
 
   const runSanitization = async () => {
@@ -2147,6 +2306,61 @@ export default function Home() {
                           : msg.content
                         }
                       </div>
+
+                      {/* Action Buttons for Assistant Messages */}
+                      {msg.role === "assistant" && !msg.error && (
+                        <div style={{ display: "flex", gap: "12px", marginTop: "16px", paddingTop: "12px", borderTop: "1px dashed var(--line)", flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            className="btn ghost"
+                            onClick={() => {
+                              const title = selectedProcessId && selectedProcessId !== "N/A" 
+                                ? `Minuta_Caso_${selectedProcessId}` 
+                                : "Minuta_JurisAI";
+                              exportToWord(msg.content, `${title}.doc`);
+                            }}
+                            style={{ padding: "6px 12px", fontSize: "11.5px", display: "flex", alignItems: "center", gap: "6px" }}
+                            title="Exportar para formato Word (.doc)"
+                          >
+                            <FileEdit size={13} /> Exportar para Word
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn ghost"
+                            onClick={() => {
+                              const title = selectedProcessId && selectedProcessId !== "N/A" 
+                                ? `Minuta_Caso_${selectedProcessId}` 
+                                : "Minuta_JurisAI";
+                              exportToMarkdown(msg.content, `${title}.md`);
+                            }}
+                            style={{ padding: "6px 12px", fontSize: "11.5px", display: "flex", alignItems: "center", gap: "6px" }}
+                            title="Exportar em formato Markdown (.md)"
+                          >
+                            <Download size={13} /> Exportar Markdown
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn ghost"
+                            onClick={() => copyToClipboard(msg.content)}
+                            style={{ padding: "6px 12px", fontSize: "11.5px", display: "flex", alignItems: "center", gap: "6px" }}
+                            title="Copiar texto para a área de transferência"
+                          >
+                            <Copy size={13} /> Copiar
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn"
+                            onClick={() => handleAdjustPrompt(index)}
+                            style={{ padding: "6px 12px", fontSize: "11.5px", display: "flex", alignItems: "center", gap: "6px", marginLeft: "auto", background: "var(--paper-2)", border: "1px solid var(--line)", color: "var(--ink-soft)" }}
+                            title="Refazer a análise ajustando a instrução anterior"
+                          >
+                            <RefreshCw size={13} /> Ajustar / Refazer
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -2257,6 +2471,7 @@ export default function Home() {
                     />
 
                     <input
+                      id="chat-input-field"
                       type="text"
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
