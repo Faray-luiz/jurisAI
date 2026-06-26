@@ -2458,28 +2458,41 @@ export default function Home() {
                 )}
 
                 {/* Message Log */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "24px", marginBottom: "30px" }}>
-                  {messages.map((msg, index) => (
-                    <div 
-                      key={index} 
-                      style={{
-                        background: msg.role === "user" ? "var(--paper-2)" : "var(--surface)",
-                        border: "1px solid var(--line)",
-                        borderRadius: "14px",
-                        padding: "24px",
-                        alignSelf: "stretch",
-                        boxShadow: msg.role === "assistant" ? "var(--shadow)" : "none",
-                        position: "relative"
-                      }}
-                    >
+                <div style={{ display: "flex", flexDirection: "column", gap: "20px", marginBottom: "30px" }}>
+                  {messages.map((msg, index) => {
+                    const isChatLivre = selectedMission?.task_type === "chat_livre";
+                    
+                    return (
+                      <div 
+                        key={index} 
+                        style={{
+                          background: isChatLivre
+                            ? msg.role === "user" ? "rgba(122, 46, 46, 0.05)" : "var(--surface)"
+                            : msg.role === "user" ? "var(--paper-2)" : "var(--surface)",
+                          border: isChatLivre
+                            ? msg.role === "user" ? "1px solid rgba(122, 46, 46, 0.15)" : "1px solid var(--line)"
+                            : "1px solid var(--line)",
+                          borderRadius: isChatLivre
+                            ? msg.role === "user" ? "16px 16px 2px 16px" : "16px 16px 16px 2px"
+                            : "14px",
+                          padding: isChatLivre ? "16px 20px" : "24px",
+                          alignSelf: isChatLivre
+                            ? msg.role === "user" ? "flex-end" : "flex-start"
+                            : "stretch",
+                          maxWidth: isChatLivre ? "80%" : "100%",
+                          boxShadow: msg.role === "assistant" && !isChatLivre ? "var(--shadow)" : "var(--shadow-sm)",
+                          position: "relative",
+                          animation: "fade-in 0.3s ease both"
+                        }}
+                      >
                       {/* Badge indicando ator */}
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", borderBottom: "1px solid var(--paper-2)", paddingBottom: "8px" }}>
-                        <span className="text-eyebrow">
+                        <span className="text-eyebrow" style={{ color: isChatLivre && msg.role === "user" ? "var(--bordo)" : "inherit", fontWeight: isChatLivre ? 700 : "inherit" }}>
                           {msg.role === "user" ? "Advogado" : "JurisAI Gateway"}
                         </span>
                         
                         {msg.role === "assistant" && msg.model && (
-                          <span style={{ fontSize: "11px", color: "var(--ink-faint)", fontWeight: 500, display: "flex", alignItems: "center", gap: "4px" }}>
+                          <span style={{ fontSize: "10.5px", color: "var(--ink-faint)", fontWeight: 500, display: "flex", alignItems: "center", gap: "4px" }}>
                             <Cpu size={11} /> {msg.model} | Custo: ${msg.cost?.toFixed(4)}
                           </span>
                         )}
@@ -2603,11 +2616,12 @@ export default function Home() {
                         </div>
                       )}
                     </div>
-                  ))}
+                  );
+                })}
                 </div>
 
-                {/* Guardrail Pipelines Visualizer */}
-                {loading && (
+                {/* Guardrail Pipelines Visualizer (Structured Missions only) */}
+                {loading && selectedMission?.task_type !== "chat_livre" && (
                   <div style={{ marginBottom: "30px", animation: "fade-in 0.3s ease both" }}>
                     <span className="text-label" style={{ display: "block", marginBottom: "10px" }}>
                       Esteira de Proteção Síncrona (Guardrails)
@@ -2650,6 +2664,34 @@ export default function Home() {
                         <div style={{ fontWeight: 600, fontSize: "13px" }}>Grounding Deterministico & PII</div>
                         <div style={{ fontSize: "11.5px", color: "var(--ink-soft)" }}>Confrontando citações jurídicas no LexML e ocultando PII...</div>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Sleek, Agile Typing/Spinning Indicator for Chat Livre (Gemini/ChatGPT style) */}
+                {loading && selectedMission?.task_type === "chat_livre" && (
+                  <div style={{
+                    alignSelf: "flex-start",
+                    background: "var(--surface)",
+                    border: "1px solid var(--line)",
+                    borderRadius: "16px 16px 16px 2px",
+                    padding: "16px 20px",
+                    maxWidth: "80%",
+                    boxShadow: "var(--shadow-sm)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                    marginBottom: "30px",
+                    animation: "fade-in 0.3s ease both"
+                  }}>
+                    <span className="text-eyebrow" style={{ fontSize: "11px", color: "var(--bordo)", fontWeight: 700 }}>
+                      JurisAI consultando acervo...
+                    </span>
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center", color: "var(--bordo)" }}>
+                      <Loader2 size={15} className="spin" />
+                      <span style={{ fontSize: "12.5px", color: "var(--ink-soft)", fontWeight: 500 }}>
+                        Pesquisando fontes oficiais e construindo resposta jurídica...
+                      </span>
                     </div>
                   </div>
                 )}

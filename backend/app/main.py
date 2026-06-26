@@ -464,7 +464,7 @@ def chat_interaction(payload: ChatPayload, user: dict = Depends(get_current_user
     sanitized_response = redact_pii(raw_response)
     
     # 7.1 Auto-save mission artifact to case documents if it is a persistent case and a specific mission
-    if is_persistent_case and payload.task_type and payload.task_type != "default":
+    if is_persistent_case and payload.task_type and payload.task_type not in ("default", "chat_livre"):
         db_save = SessionLocal()
         try:
             from backend.app.db.models import DBMission, DBProcessDocument
