@@ -22,6 +22,7 @@ interface Message {
   model?: string;
   cost?: number;
   error?: boolean;
+  web_results?: any[];
 }
 
 export default function Home() {
