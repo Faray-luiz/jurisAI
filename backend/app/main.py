@@ -290,38 +290,102 @@ def chat_interaction(payload: ChatPayload, user: dict = Depends(get_current_user
     # Run strictly on the user's explicit instructions to prevent false positives on attached legal documents
     validate_input_prompt(payload.prompt)
     
-    # 2. Ethical Wall checking & Decrypt Document
+    # 2. Ethical Wall checking, Metadata Extraction, & Decrypt Document (Shared Process Memory)
     decrypted_content = ""
+    extra_decrypted_content = ""
     doc_filename = ""
-    if payload.document_id:
-        from backend.app.db.session import SessionLocal
-        from backend.app.db.models import DBProcessDocument
-        db = SessionLocal()
-        try:
+    
+    from backend.app.db.session import SessionLocal
+    from backend.app.db.models import DBProcessDocument, DBProcess
+    db = SessionLocal()
+    try:
+        is_persistent_case = False
+        if payload.process_id and payload.process_id != "N/A" and not payload.process_id.startswith("session"):
+            verify_process_access(payload.process_id, user)
+            is_persistent_case = True
+            
+            # Load case metadata
+            case_info = db.query(DBProcess).filter(DBProcess.id == payload.process_id).first()
+            metadata_str = ""
+            if case_info:
+                metadata_str = (
+                    f"Ficha Técnica do Caso:\n"
+                    f"- Case ID: {case_info.id}\n"
+                    f"- Título: {case_info.title}\n"
+                    f"- Número do Processo: {case_info.process_number}\n"
+                    f"- Cliente: {case_info.client}\n"
+                    f"- Matéria: {case_info.matter}\n"
+                )
+                if case_info.summary:
+                    metadata_str += f"- Resumo do Caso: {case_info.summary}\n"
+                if case_info.plaintiff:
+                    metadata_str += f"- Autor (Polo Ativo): {case_info.plaintiff}\n"
+                if case_info.defendant:
+                    metadata_str += f"- Réu (Polo Passivo): {case_info.defendant}\n"
+                if case_info.value:
+                    metadata_str += f"- Valor da Causa: {case_info.value}\n"
+                if case_info.court:
+                    metadata_str += f"- Vara/Tribunal: {case_info.court}\n"
+            
+            # Load all documents of this case
+            case_docs = db.query(DBProcessDocument).filter(DBProcessDocument.process_id == payload.process_id).all()
+            doc_contents = []
+            if case_docs:
+                for cd in case_docs:
+                    decrypted = sanitize_document_content(decrypt_text(cd.encrypted_content))
+                    doc_contents.append(f"--- Arquivo: {cd.filename} ---\n{decrypted}")
+            
+            if metadata_str:
+                decrypted_content += f"{metadata_str}\n"
+            if doc_contents:
+                decrypted_content += "\nDocumentos do Caso:\n" + "\n\n".join(doc_contents)
+
+        if payload.document_id:
             doc = db.query(DBProcessDocument).filter(DBProcessDocument.id == payload.document_id).first()
             if not doc:
                 raise HTTPException(status_code=404, detail="Documento anexo não encontrado no banco de dados.")
-            # Verify access to the process of this document (Ethical Wall)
-            verify_process_access(doc.process_id, user)
             
-            # Decrypt and sanitize document content to prevent data-vs-instruction confusion (as per PRD)
-            decrypted_content = sanitize_document_content(decrypt_text(doc.encrypted_content))
+            verify_process_access(doc.process_id, user)
             doc_filename = doc.filename
-        finally:
-            db.close()
-    elif payload.process_id and payload.process_id != "N/A":
-        verify_process_access(payload.process_id, user)
+            
+            # Check if this document is already loaded as a main doc of the case
+            is_main_doc = False
+            if is_persistent_case:
+                if doc.process_id == payload.process_id:
+                    is_main_doc = True
+            
+            if not is_main_doc:
+                # It's an extra/session document
+                extra_decrypted_content = sanitize_document_content(decrypt_text(doc.encrypted_content))
+        elif not is_persistent_case and payload.process_id and payload.process_id != "N/A":
+            verify_process_access(payload.process_id, user)
+    finally:
+        db.close()
         
     # Construct prompt with attached document content if available (Shared Process Memory)
     final_prompt = payload.prompt
+    
+    # 1. Append Shared Process Memory (Metadata + Case Documents)
     if decrypted_content:
         final_prompt = (
             f"{payload.prompt}\n\n"
             f"[MEMÓRIA COMPARTILHADA DO PROCESSO ATIVO]\n"
-            f"O seguinte documento representa o processo sob análise nesta sessão. "
-            f"Utilize as informações extraídas dele como contexto prioritário para executar a sua missão:\n"
+            f"O seguinte conteúdo representa as informações estruturadas e documentos do caso sob análise. "
+            f"Utilize estes dados como contexto prioritário para executar a sua missão:\n"
             f"---\n"
             f"{decrypted_content}\n"
+            f"---\n"
+        )
+    
+    # 2. Append Extra/Additional Document if uploaded
+    if extra_decrypted_content:
+        final_prompt = (
+            f"{final_prompt}\n\n"
+            f"[DOCUMENTO ADICIONAL ANEXADO]\n"
+            f"O seguinte documento extra foi anexado pelo advogado para complementar a análise. "
+            f"Integre as informações deste documento à sua resposta:\n"
+            f"---\n"
+            f"{extra_decrypted_content}\n"
             f"---\n"
         )
         
