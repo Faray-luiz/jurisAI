@@ -158,8 +158,9 @@ def _log_to_langsmith(provider: str, model: str, prompt: str, system_prompt: str
     try:
         import requests
         try:
-            from langsmith import Client
-            client = Client(api_url="https://api.smith.langchain.com", api_key=settings.LANGSMITH_API_KEY)
+            import importlib
+            langsmith = importlib.import_module("langsmith")
+            client = langsmith.Client(api_url="https://api.smith.langchain.com", api_key=settings.LANGSMITH_API_KEY)
             client.create_run(
                 name=f"JurisAI - {provider} - {model}",
                 run_type="llm",
