@@ -1663,20 +1663,31 @@ export default function Home() {
           flushList(i);
           isInsideList = false;
         }
-        const quoteText = trimmed.slice(1).trim();
+        
+        const quoteLines: string[] = [];
+        while (i < lines.length && lines[i].trim().startsWith(">")) {
+          const currentLine = lines[i].trim();
+          const contentAfterGt = currentLine.slice(1);
+          const cleanLine = contentAfterGt.startsWith(" ") ? contentAfterGt.slice(1) : contentAfterGt;
+          quoteLines.push(cleanLine);
+          i++;
+        }
+        i--;
+        
         blocks.push(
           <blockquote key={`quote-${i}`} style={{
-            margin: "16px 0",
-            padding: "12px 18px",
-            background: "rgba(122, 46, 46, 0.03)",
+            margin: "18px 0",
+            padding: "14px 20px",
+            background: "rgba(122, 46, 46, 0.025)",
             borderLeft: "4px solid var(--bordo)",
-            borderRadius: "0 8px 8px 0",
+            borderRadius: "0 10px 10px 0",
             fontSize: "13.5px",
             color: "var(--ink-soft)",
             lineHeight: "1.6",
-            fontStyle: "italic"
+            fontStyle: "italic",
+            boxShadow: "inset 1px 0 0 0 rgba(122,46,46,0.05)"
           }}>
-            {renderInlineContent(quoteText, citations)}
+            {renderMessageWithChips(quoteLines.join("\n"), citations)}
           </blockquote>
         );
         continue;

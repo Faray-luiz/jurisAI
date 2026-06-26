@@ -140,7 +140,7 @@ def _call_anthropic(client, model_id, temperature, system_blocks, messages_paylo
 def _call_google(model_instance, contents, temperature):
     return model_instance.generate_content(
         contents,
-        generation_config={"temperature": temperature}
+        generation_config={"temperature": temperature, "max_output_tokens": 8192}
     )
 
 @execute_with_retry_and_breaker(provider_name="openai")
@@ -148,6 +148,7 @@ def _call_openai(client, model, temperature, messages_payload):
     return client.chat.completions.create(
         model=model,
         temperature=temperature,
+        max_tokens=4096,
         messages=messages_payload
     )
 
