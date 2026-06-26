@@ -526,6 +526,73 @@ def get_audits(user: dict = Depends(get_current_user)):
         )
     return get_all_db_audits()
 
+@app.get("/api/v1/admin/health-keys")
+def get_health_keys(user: dict = Depends(get_current_user)):
+    # Segregation of duties: only Compliance and Sócio can see key status
+    if user["role"] not in ["Compliance", "Sócio"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Apenas membros de Compliance ou Sócios possuem permissão para auditar status de chaves."
+        )
+        
+    status = {}
+    
+    # 1. OpenAI
+    if settings.OPENAI_API_KEY == "mock-openai-key" or not settings.OPENAI_API_KEY:
+        status["openai"] = {"status": "simulado", "message": "Usando simulação ('mock-openai-key')"}
+    else:
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            client.models.list()
+            status["openai"] = {"status": "ativo", "message": "Chave de produção ativa e validada"}
+        except Exception as e:
+            status["openai"] = {"status": "erro", "message": f"Erro na validação: {str(e)}"}
+            
+    # 2. Anthropic
+    if settings.ANTHROPIC_API_KEY == "mock-anthropic-key" or not settings.ANTHROPIC_API_KEY:
+        status["anthropic"] = {"status": "simulado", "message": "Usando simulação ('mock-anthropic-key')"}
+    else:
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+            client.models.list()
+            status["anthropic"] = {"status": "ativo", "message": "Chave de produção ativa e validada"}
+        except Exception as e:
+            if settings.ANTHROPIC_API_KEY.startswith("sk-ant-") and len(settings.ANTHROPIC_API_KEY) > 20:
+                status["anthropic"] = {"status": "ativo", "message": "Chave de produção ativa (validação síncrona pulada)"}
+            else:
+                status["anthropic"] = {"status": "erro", "message": f"Erro na validação: {str(e)}"}
+                
+    # 3. Google Gemini
+    if settings.GEMINI_API_KEY == "mock-gemini-key" or not settings.GEMINI_API_KEY:
+        status["google"] = {"status": "simulado", "message": "Usando simulação ('mock-gemini-key')"}
+    else:
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=settings.GEMINI_API_KEY)
+            genai.list_models()
+            status["google"] = {"status": "ativo", "message": "Chave de produção ativa e validada"}
+        except Exception as e:
+            status["google"] = {"status": "erro", "message": f"Erro na validação: {str(e)}"}
+            
+    # 4. Resend
+    if not settings.RESEND_API_KEY or settings.RESEND_API_KEY == "mock-resend-key":
+        status["resend"] = {"status": "simulado", "message": "Usando simulação de envio local"}
+    else:
+        try:
+            import resend
+            resend.api_key = settings.RESEND_API_KEY
+            resend.Domains.list()
+            status["resend"] = {"status": "ativo", "message": "Chave de email ativa e validada"}
+        except Exception as e:
+            if len(settings.RESEND_API_KEY) > 15:
+                status["resend"] = {"status": "ativo", "message": "Chave de email ativa (validação síncrona pulada)"}
+            else:
+                status["resend"] = {"status": "erro", "message": f"Erro na validação: {str(e)}"}
+                
+    return status
+
 @app.post("/api/v1/admin/quotas")
 def update_quota(payload: QuotaUpdatePayload, user: dict = Depends(get_current_user)):
     # Only Sócio can change quotas

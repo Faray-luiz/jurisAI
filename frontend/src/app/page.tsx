@@ -425,7 +425,7 @@ export default function Home() {
   const fetchProviderStatuses = async (email: string) => {
     setLoadingStatuses(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/v1/admin/provider-status`, {
+      const res = await fetch(`${BACKEND_URL}/api/v1/admin/health-keys`, {
         headers: { "Authorization": `Bearer ${email}` }
       });
       if (res.ok) {
@@ -2272,6 +2272,84 @@ export default function Home() {
 
                     {/* Central de Missões */}
                     <span className="text-label" style={{ display: "block", marginBottom: "12px" }}>Central de Missões</span>
+                    
+                    {/* Chat Livre Card (Consultor Central) - Featured Prominent Card */}
+                    <div 
+                      className="card-premium animate-fade-in"
+                      onClick={() => handleMissionClick({
+                        id: "chat_livre",
+                        task_type: "chat_livre",
+                        display_name: "Consultor Central (Chat Livre)",
+                        icon: "💬",
+                        description: "Consulte todo o acervo legislativo e faça perguntas abertas sobre o processo ativo, jurisprudência e estratégias de defesa sem restrições de missão.",
+                        default_prompt: ""
+                      })}
+                      style={{
+                        cursor: "pointer",
+                        background: "linear-gradient(135deg, rgba(122, 46, 46, 0.06) 0%, rgba(20, 20, 20, 0.01) 100%)",
+                        border: "2px solid var(--bordo)",
+                        borderRadius: "14px",
+                        padding: "20px 24px",
+                        marginBottom: "20px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "20px",
+                        boxShadow: "var(--shadow-sm)",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                        <div style={{
+                          background: "var(--bordo)",
+                          color: "white",
+                          borderRadius: "50%",
+                          width: "44px",
+                          height: "44px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "22px",
+                          boxShadow: "0 4px 10px rgba(122, 46, 46, 0.25)"
+                        }}>
+                          💬
+                        </div>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <h3 style={{ fontSize: "15.5px", fontWeight: 700, color: "var(--ink)", margin: 0, fontFamily: "'Fraunces', serif" }}>
+                              Consultor Central (Chat Livre)
+                            </h3>
+                            <span style={{
+                              background: "var(--bordo)",
+                              color: "white",
+                              fontSize: "8.5px",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              letterSpacing: "0.05em"
+                            }}>
+                              Grounding Global
+                            </span>
+                          </div>
+                          <p style={{ fontSize: "12.5px", color: "var(--ink-soft)", margin: "4px 0 0 0", lineHeight: "1.4" }}>
+                            Consulte todo o acervo ativo no banco, analise múltiplos documentos simultaneamente, planeje teses de defesa e faça perguntas livres sobre o caso ativo.
+                          </p>
+                        </div>
+                      </div>
+                      <div style={{
+                        color: "var(--bordo)",
+                        fontWeight: 600,
+                        fontSize: "13px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        whiteSpace: "nowrap"
+                      }}>
+                        Iniciar Chat <span>→</span>
+                      </div>
+                    </div>
+
                     <div className="card-grid">
                       {missions.length === 0 ? (
                         <div style={{ gridColumn: "1/-1", padding: "20px", textAlign: "center", color: "var(--ink-faint)", fontSize: "13px", border: "1px dashed var(--line)", borderRadius: "12px" }}>
@@ -2331,6 +2409,47 @@ export default function Home() {
                         </>
                       );
                     })()}
+                  </div>
+                )}
+
+                {/* Active Mission / Chat Mode Header */}
+                {selectedMission && (
+                  <div style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--bordo)",
+                    borderRadius: "12px",
+                    padding: "14px 20px",
+                    marginBottom: "20px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "16px",
+                    boxShadow: "var(--shadow-sm)",
+                    animation: "fade-in 0.3s ease both"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <span style={{ fontSize: "20px" }}>{selectedMission.icon}</span>
+                      <div>
+                        <span style={{ color: "var(--ink-faint)", display: "block", fontSize: "10.5px", fontWeight: 600, textTransform: "uppercase" }}>
+                          {selectedMission.task_type === "chat_livre" ? "Modo de Consulta" : "Missão Ativa"}
+                        </span>
+                        <strong style={{ color: "var(--bordo)", fontSize: "15px", fontFamily: "'Fraunces', serif" }}>
+                          {selectedMission.display_name}
+                        </strong>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      onClick={() => {
+                        setSelectedMission(null);
+                        setInputText("");
+                        showToast("Missão/Modo desativado.");
+                      }}
+                      style={{ fontSize: "12px", color: "var(--ink-soft)" }}
+                    >
+                      Voltar à Seleção
+                    </button>
                   </div>
                 )}
 
@@ -2476,6 +2595,46 @@ export default function Home() {
                         <div style={{ fontSize: "11.5px", color: "var(--ink-soft)" }}>Confrontando citações jurídicas no LexML e ocultando PII...</div>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Chat Livre Suggestion Chips */}
+                {selectedMission?.task_type === "chat_livre" && (
+                  <div style={{
+                    display: "flex",
+                    gap: "10px",
+                    overflowX: "auto",
+                    padding: "8px 0",
+                    marginBottom: "12px",
+                    scrollbarWidth: "none",
+                    msOverflowStyle: "none"
+                  }}>
+                    {[
+                      "Buscar contradições nos documentos do caso",
+                      "Identificar fragilidades jurídicas na petição inicial",
+                      "Sugestões de teses de defesa para contestação",
+                      "Verificar jurisprudências e súmulas aplicáveis"
+                    ].map((chip, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setInputText(chip)}
+                        style={{
+                          background: "rgba(122, 46, 46, 0.04)",
+                          border: "1px solid rgba(122, 46, 46, 0.15)",
+                          color: "var(--bordo)",
+                          fontSize: "12px",
+                          fontWeight: 500,
+                          padding: "6px 12px",
+                          borderRadius: "20px",
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                          transition: "all 0.2s ease"
+                        }}
+                      >
+                        {chip}
+                      </button>
+                    ))}
                   </div>
                 )}
 
@@ -2658,7 +2817,8 @@ export default function Home() {
                         {[
                           { key: "openai", name: "OpenAI" },
                           { key: "anthropic", name: "Anthropic" },
-                          { key: "google", name: "Google (Gemini)" }
+                          { key: "google", name: "Google (Gemini)" },
+                          { key: "resend", name: "Resend (Email)" }
                         ].map(prov => {
                           const info = providerStatuses?.[prov.key];
                           const isActive = info?.status === "ativo";

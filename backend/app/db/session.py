@@ -350,9 +350,38 @@ def seed_database():
                     model="gpt-4o-mini",
                     temperature=0.0,
                     system_prompt="Você é um assistente jurídico de alta precisão. Sempre utilize colchetes ao citar artigos específicos, ex: [Art. 5º da CF/88]."
+                ),
+                DBAgentConfig(
+                    task_type="chat_livre",
+                    provider="anthropic",
+                    model="claude-3-5-sonnet",
+                    temperature=0.2,
+                    system_prompt=(
+                        "Você é o consultor jurídico central do caso. Sua missão é responder a consultas gerais sobre o processo, "
+                        "analisar os documentos da memória compartilhada, propor estratégias processuais, teses de defesa "
+                        "e tirar dúvidas sobre a legislação e jurisprudência aplicáveis. Sempre utilize colchetes ao citar artigos específicos, ex: [Art. 186 do Código Civil]."
+                    )
                 )
             ]
             db.add_all(configs)
+            db.commit()
+
+        # Defensive Seeding of chat_livre Agent Config
+        existing_cl_config = db.query(DBAgentConfig).filter(DBAgentConfig.task_type == "chat_livre").first()
+        if not existing_cl_config:
+            print("Defensive Seeding: Adding chat_livre agent config")
+            cl_config = DBAgentConfig(
+                task_type="chat_livre",
+                provider="anthropic",
+                model="claude-3-5-sonnet",
+                temperature=0.2,
+                system_prompt=(
+                    "Você é o consultor jurídico central do caso. Sua missão é responder a consultas gerais sobre o processo, "
+                    "analisar os documentos da memória compartilhada, propor estratégias processuais, teses de defesa "
+                    "e tirar dúvidas sobre a legislação e jurisprudência aplicáveis. Sempre utilize colchetes ao citar artigos específicos, ex: [Art. 186 do Código Civil]."
+                )
+            )
+            db.add(cl_config)
             db.commit()
 
         # Seed Grounding Docs if empty

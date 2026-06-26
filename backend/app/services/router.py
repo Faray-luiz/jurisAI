@@ -44,6 +44,13 @@ MOCK_RESPONSES = {
         "Ao contrário do sustentado na r sentença, o ônus probatório cabia ao autor de provar o fato alegado, segundo os preceitos do [Art. 373 do CPC/2015].\n\n"
         "Caso esta câmara julgue necessário, pleiteia-se a aplicação analógica do [Art. 1234 da CF/88], que dispõe sobre a revisão imediata de atos processuais."
     ),
+    "chat_livre": (
+        "Como seu consultor jurídico de confiança, analisei as informações do caso ativo na memória compartilhada.\n\n"
+        "Com base nos fatos da petição inicial, o ponto central da controvérsia envolve o inadimplemento de obrigação contratual e a consequente reparação civil. "
+        "O fundamento jurídico para o pleito indenizatório está amparado no [Art. 186 do Código Civil] (ato ilícito) e no [Art. 927 do Código Civil] (dever de indenizar).\n\n"
+        "Para a defesa dos interesses do cliente, recomendo focar na ausência de comprovação do nexo causal ou na caracterização de excludente de responsabilidade (caso fortuito ou força maior). "
+        "Se precisar de análises de peças específicas ou rascunhos, basta selecionar uma das Missões da central ou fazer novas perguntas aqui no chat."
+    ),
     "default": (
         "Com base em suas instruções, elaborei o rascunho de resposta jurídica. \n\n"
         "Conforme previsto no [Art. 5º da CF/88], todos são iguais perante a lei. "
