@@ -427,6 +427,25 @@ def run_tests():
     
     print("Resiliência (Circuit Breaker) OK!")
     
+    # 8. Test Web Search & Advanced Grounding
+    print("\n8. Testando Pesquisa Web Jurídica e Grounding com URLs...")
+    from backend.app.services.search_service import search_web_juridico
+    
+    # Test search_web_juridico (mock/simulation mode)
+    search_res = search_web_juridico("Súmula Vinculante 57")
+    assert len(search_res) > 0
+    assert "57" in search_res[0]["title"]
+    assert "https://" in search_res[0]["link"]
+    
+    # Test verify_citations with web results
+    cite_web = verify_citations("O julgado atrai a aplicação da [Súmula Vinculante 57 do STF] para o e-reader.", web_results=search_res)
+    assert len(cite_web) == 1
+    assert cite_web[0]["status"] == "ok"
+    assert "stf" in cite_web[0]["link"]
+    assert cite_web[0]["vigencia"] == "Jurisprudência / Online"
+    
+    print("Pesquisa Web & Grounding com URLs OK!")
+    
     print("\n=== Todos os Testes Passaram com Sucesso! ===")
 
 if __name__ == "__main__":

@@ -122,6 +122,21 @@ export default function CitationDrawer({ isOpen, citation, onClose, onCopyText }
                   <td>Correspondência</td>
                   <td style={{ fontWeight: 600 }}>{correspondencia}</td>
                 </tr>
+                {citation.link && (
+                  <tr>
+                    <td>Fonte de Consulta</td>
+                    <td>
+                      <a 
+                        href={citation.link} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        style={{ color: "var(--bordo)", textDecoration: "underline", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "3px" }}
+                      >
+                        Visualizar Fonte Oficial ↗
+                      </a>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

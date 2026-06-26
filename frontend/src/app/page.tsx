@@ -48,6 +48,7 @@ export default function Home() {
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [pipelineStep, setPipelineStep] = useState<number>(0); // 1 to 4
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   
   // Document upload state
   const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
@@ -1160,7 +1161,8 @@ export default function Home() {
           process_id: sessionFile ? "session" : selectedProcessId,
           task_type: task_type,
           history: messages.map(m => ({ role: m.role, content: m.content })),
-          document_id: sessionFile ? sessionFile.id : attachedFileId
+          document_id: sessionFile ? sessionFile.id : attachedFileId,
+          web_search: webSearchEnabled
         })
       });
 
@@ -1200,7 +1202,8 @@ export default function Home() {
           content: data.response,
           citations: data.citations,
           model: data.model_used,
-          cost: data.cost_usd
+          cost: data.cost_usd,
+          web_results: data.web_results || []
         }]);
         
         // Refresh local user quota display
@@ -2492,6 +2495,58 @@ export default function Home() {
                         }
                       </div>
 
+                      {/* Web Search Sources Accordion */}
+                      {msg.role === "assistant" && msg.web_results && msg.web_results.length > 0 && (
+                        <div style={{
+                          marginTop: "16px",
+                          padding: "12px 16px",
+                          background: "rgba(100, 100, 100, 0.02)",
+                          border: "1px solid var(--line)",
+                          borderRadius: "10px",
+                          fontSize: "12.5px"
+                        }}>
+                          <span style={{ fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: "8px" }}>
+                            🌐 Fontes Oficiais Consultadas na Internet (Grounding Global):
+                          </span>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                            {msg.web_results.map((res: any, idx: number) => (
+                              <a 
+                                key={idx}
+                                href={res.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "6px",
+                                  padding: "4px 10px",
+                                  background: "var(--surface)",
+                                  border: "1px solid var(--line)",
+                                  borderRadius: "6px",
+                                  color: "var(--bordo)",
+                                  fontWeight: 500,
+                                  textDecoration: "none",
+                                  transition: "all 0.2s"
+                                }}
+                                title={res.snippet}
+                              >
+                                <span style={{
+                                  fontSize: "9px",
+                                  fontWeight: 700,
+                                  background: "var(--bordo)",
+                                  color: "white",
+                                  padding: "1px 4px",
+                                  borderRadius: "3px"
+                                }}>
+                                  {res.source}
+                                </span>
+                                {res.title.length > 25 ? `${res.title.substring(0, 25)}...` : res.title} ↗
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Action Buttons for Assistant Messages */}
                       {msg.role === "assistant" && !msg.error && (
                         <div style={{ display: "flex", gap: "12px", marginTop: "16px", paddingTop: "12px", borderTop: "1px dashed var(--line)", flexWrap: "wrap" }}>
@@ -2723,8 +2778,30 @@ export default function Home() {
                       {loading ? <Loader2 size={17} className="spin" /> : <Send size={17} />}
                     </button>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "11px", color: "var(--ink-faint)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px", fontSize: "11px", color: "var(--ink-faint)" }}>
                     <span>Citações válidas geradas terão tags dinâmicas.</span>
+                    {selectedMission?.task_type === "chat_livre" && (
+                      <label style={{ 
+                        display: "inline-flex", 
+                        alignItems: "center", 
+                        gap: "6px", 
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        color: "var(--bordo)",
+                        background: "rgba(122, 46, 46, 0.05)",
+                        padding: "4px 10px",
+                        borderRadius: "6px",
+                        border: "1px solid rgba(122, 46, 46, 0.15)"
+                      }}>
+                        <input 
+                          type="checkbox" 
+                          checked={webSearchEnabled}
+                          onChange={(e) => setWebSearchEnabled(e.target.checked)}
+                          style={{ accentColor: "var(--bordo)", cursor: "pointer" }}
+                        />
+                        <span>Pesquisa Jurídica na Web (Oficial)</span>
+                      </label>
+                    )}
                     <span>Ancoragem determinística síncrona.</span>
                   </div>
                 </form>

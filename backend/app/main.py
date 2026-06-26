@@ -41,6 +41,7 @@ class ChatPayload(BaseModel):
     model_override: Optional[str] = None
     history: Optional[List[MessagePayload]] = None
     document_id: Optional[int] = None
+    web_search: Optional[bool] = False
 
 class QuotaUpdatePayload(BaseModel):
     email: str
@@ -389,6 +390,21 @@ def chat_interaction(payload: ChatPayload, user: dict = Depends(get_current_user
             f"---\n"
         )
         
+    # 2.1 Web Search execution if requested
+    web_results = []
+    if payload.web_search:
+        from backend.app.services.search_service import search_web_juridico
+        try:
+            web_results = search_web_juridico(payload.prompt)
+            if web_results:
+                search_context = "\n\n[RESULTADOS DA PESQUISA WEB JURÍDICA]\n"
+                search_context += "Utilize as seguintes informações e julgados da internet em fontes oficiais para fundamentar sua resposta. Cite-as sempre entre colchetes, ex: [Súmula Vinculante 57 do STF]:\n"
+                for r in web_results:
+                    search_context += f"- **{r['title']}** (Fonte: {r['source']}): {r['snippet']} (Link: {r['link']})\n"
+                final_prompt = f"{final_prompt}\n{search_context}"
+        except Exception as se:
+            print(f"[Search Error] Web search failed: {se}")
+
     # 3. Model routing logic
     model, provider = route_task(final_prompt, payload.task_type)
     if payload.model_override:
@@ -436,7 +452,7 @@ def chat_interaction(payload: ChatPayload, user: dict = Depends(get_current_user
     )
     
     # 6. Sychronous Grounding check
-    citations = verify_citations(raw_response)
+    citations = verify_citations(raw_response, web_results=web_results if payload.web_search else None)
     
     grounding_status = "Verificado"
     if any(c["status"] == "warn" for c in citations):
@@ -504,7 +520,8 @@ def chat_interaction(payload: ChatPayload, user: dict = Depends(get_current_user
         "model_used": model_used,
         "cost_usd": actual_cost,
         "quota_status": quota_status["status"],
-        "quota_warning": quota_status.get("warning", False)
+        "quota_warning": quota_status.get("warning", False),
+        "web_results": web_results if payload.web_search else []
     }
 
 @app.post("/api/v1/chat/sanitize-doc")
