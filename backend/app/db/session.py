@@ -257,6 +257,74 @@ def seed_database():
             ))
             db.commit()
             print("SQLite Database base seed complete.")
+            
+        # Defensive Seeding of Process Documents for pre-seeded processes (PROC-001, PROC-002, PROC-003)
+        preseeded_docs = [
+            (
+                "PROC-001",
+                "peticao_inicial_indenizacao.txt",
+                "EXCELENTÍSSIMO SENHOR DOUTOR JUIZ DE DIREITO DA VARA CÍVEL DO FORO CENTRAL DE SÃO PAULO - SP\n\n"
+                "REQUERENTE: Lucas Silva\n"
+                "REQUERIDO: Construtora Alfa\n\n"
+                "FATOS E FUNDAMENTOS:\n"
+                "O Requerente firmou contrato de promessa de compra e venda de imóvel com a Requerida. "
+                "O prazo pactuado para a entrega da unidade habitacional era dezembro de 2025. "
+                "Ocorre que, até a presente data, as chaves não foram entregues, configurando atraso injustificado de mais de 180 dias. "
+                "Diante do inadimplemento contratual, resta configurado o dever de indenizar nos termos do Código de Defesa do Consumidor "
+                "e dos artigos 186 e 927 do Código Civil. "
+                "Houve sério abalo moral e lucros cessantes decorrentes da impossibilidade de fruição do bem no prazo estipulado.\n\n"
+                "PEDIDOS:\n"
+                "1. Condenação da Requerida ao pagamento de indenização por danos morais no valor de R$ 20.000,00.\n"
+                "2. Condenação ao pagamento de lucros cessantes equivalentes a 0,5% do valor do imóvel por mês de atraso.\n"
+                "3. Aplicação da inversão da cláusula penal rescisória em desfavor da construtora."
+            ),
+            (
+                "PROC-002",
+                "peticao_contestacao_cobranca.txt",
+                "EXCELENTÍSSIMO SENHOR DOUTOR JUIZ DE DIREITO DA 2ª VARA CÍVEL DO FORO DA COMARCA DA CAPITAL - RJ\n\n"
+                "REQUERENTE: Mariana Souza\n"
+                "REQUERIDO: Incorporadora Beta\n\n"
+                "FATOS E FUNDAMENTOS:\n"
+                "A Requerente alega ter sido cobrada indevidamente por taxas condominiais anteriores à imissão na posse do imóvel. "
+                "Pleiteia a repetição do indébito em dobro e indenização por danos morais, sob a alegação de cobrança vexatória. "
+                "Contudo, a Incorporadora Beta esclarece que tais encargos decorrem de previsão expressa na Convenção de Condomínio "
+                "e que a responsabilidade pelas taxas após a expedição do 'habite-se' é exclusiva do adquirente, nos termos do contrato assinado. "
+                "Não há que se falar em conduta ilícita, cobrança vexatória ou dever de indenizar sob a ótica do Código Civil."
+            ),
+            (
+                "PROC-003",
+                "contrato_parceria_gama.txt",
+                "INSTRUMENTO PARTICULAR DE CONTRATO DE PARCERIA E OUTRAS AVENÇAS\n\n"
+                "PARTE A: Companhia Gama\n"
+                "PARTE B: Parceiro Comercial Ltda\n\n"
+                "CLÁUSULA PRIMEIRA - DO OBJETO:\n"
+                "O presente contrato tem por objeto o desenvolvimento conjunto de soluções de software e a partilha de receitas decorrentes "
+                "da comercialização da plataforma de inteligência jurídica artificial desenvolvida em parceria.\n\n"
+                "CLÁUSULA SEGUNDA - DA CONFIDENCIALIDADE:\n"
+                "As Partes obrigam-se a manter o mais absoluto sigilo sobre quaisquer informações confidenciais recebidas da outra Parte "
+                "em decorrência deste instrumento, sob pena de rescisão imediata e pagamento de multa penal de R$ 100.000,00, "
+                "sem prejuízo de indenização por perdas e danos adicionais.\n\n"
+                "CLÁUSULA TERCEIRA - DA PROPRIEDADE INTELECTUAL:\n"
+                "Toda a propriedade intelectual pré-existente continuará pertencendo à Parte que a desenvolveu. "
+                "A propriedade intelectual criada de forma conjunta pertencerá a ambas as Partes na proporção de 50% para cada."
+            )
+        ]
+
+        for proc_id, filename, content in preseeded_docs:
+            existing_doc = db.query(DBProcessDocument).filter(
+                DBProcessDocument.process_id == proc_id,
+                DBProcessDocument.filename == filename
+            ).first()
+            if not existing_doc:
+                print(f"Defensive Seeding: Adding document {filename} for process {proc_id}")
+                from backend.app.core.crypto import encrypt_text
+                db_doc = DBProcessDocument(
+                    process_id=proc_id,
+                    filename=filename,
+                    encrypted_content=encrypt_text(content)
+                )
+                db.add(db_doc)
+        db.commit()
 
         # Seed Agent Configs if empty
         if db.query(DBAgentConfig).count() == 0:

@@ -244,7 +244,7 @@ export default function Home() {
       
       // Default process selection
       if (procData.length > 0) {
-        setSelectedProcessId(procData[0].id);
+        setSelectedProcessId(prev => (prev && prev !== "N/A" ? prev : procData[0].id));
       } else {
         setSelectedProcessId("N/A");
       }
