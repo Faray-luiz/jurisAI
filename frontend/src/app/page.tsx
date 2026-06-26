@@ -1506,17 +1506,35 @@ export default function Home() {
     };
 
     const renderInlineContent = (inlineText: string, citeList: any[] = []) => {
+      // 1. Split on bold (**text**)
       const boldParts = inlineText.split(/(\*\*[^*]+\*\*)/g);
       return boldParts.map((boldPart, bIdx) => {
-        if (boldPart.startsWith("**") && boldPart.endsWith("**")) {
-          const cleanBold = boldPart.slice(2, -2);
+        const isBold = boldPart.startsWith("**") && boldPart.endsWith("**");
+        const cleanBold = isBold ? boldPart.slice(2, -2) : boldPart;
+        
+        // 2. Split on italics (*text* or _text_)
+        const italicParts = cleanBold.split(/(\*[^*]+\*|_[^_]+_)/g);
+        const renderedItalics = italicParts.map((italicPart, iIdx) => {
+          const isItalic = (italicPart.startsWith("*") && italicPart.endsWith("*")) || 
+                           (italicPart.startsWith("_") && italicPart.endsWith("_"));
+          const cleanItalic = isItalic ? italicPart.slice(1, -1) : italicPart;
+          
+          const content = renderCitationsOnly(cleanItalic, citeList);
+          
+          if (isItalic) {
+            return <em key={`italic-${bIdx}-${iIdx}`} style={{ fontStyle: "italic" }}>{content}</em>;
+          }
+          return content;
+        });
+
+        if (isBold) {
           return (
             <strong key={`bold-${bIdx}`} style={{ fontWeight: 600, color: "var(--ink)" }}>
-              {renderCitationsOnly(cleanBold, citeList)}
+              {renderedItalics}
             </strong>
           );
         }
-        return renderCitationsOnly(boldPart, citeList);
+        return renderedItalics;
       });
     };
 
@@ -1634,6 +1652,35 @@ export default function Home() {
         blocks.push(<hr key={`hr-${i}`} style={{ border: "0", borderTop: "1px solid var(--line)", margin: "24px 0" }} />);
         continue;
       }
+
+      // Blockquotes
+      if (trimmed.startsWith(">")) {
+        if (isInsideTable) {
+          flushTable(i);
+          isInsideTable = false;
+        }
+        if (isInsideList) {
+          flushList(i);
+          isInsideList = false;
+        }
+        const quoteText = trimmed.slice(1).trim();
+        blocks.push(
+          <blockquote key={`quote-${i}`} style={{
+            margin: "16px 0",
+            padding: "12px 18px",
+            background: "rgba(122, 46, 46, 0.03)",
+            borderLeft: "4px solid var(--bordo)",
+            borderRadius: "0 8px 8px 0",
+            fontSize: "13.5px",
+            color: "var(--ink-soft)",
+            lineHeight: "1.6",
+            fontStyle: "italic"
+          }}>
+            {renderInlineContent(quoteText, citations)}
+          </blockquote>
+        );
+        continue;
+      }
       
       // Headers
       if (trimmed.startsWith("# ")) {
@@ -1657,6 +1704,14 @@ export default function Home() {
           <h3 key={`h3-${i}`} style={{ fontSize: "14px", fontWeight: 600, margin: "20px 0 10px 0", color: "var(--ink-soft)" }}>
             {renderInlineContent(trimmed.slice(4), citations)}
           </h3>
+        );
+        continue;
+      }
+      if (trimmed.startsWith("#### ")) {
+        blocks.push(
+          <h4 key={`h4-${i}`} style={{ fontSize: "13px", fontWeight: 700, margin: "18px 0 8px 0", color: "var(--ink)", fontFamily: "'Fraunces', serif", fontStyle: "italic" }}>
+            {renderInlineContent(trimmed.slice(5), citations)}
+          </h4>
         );
         continue;
       }

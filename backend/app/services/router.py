@@ -130,7 +130,7 @@ from backend.app.services.resilience import execute_with_retry_and_breaker, get_
 def _call_anthropic(client, model_id, temperature, system_blocks, messages_payload):
     return client.messages.create(
         model=model_id,
-        max_tokens=2048,
+        max_tokens=8192,
         temperature=temperature,
         system=system_blocks,
         messages=messages_payload
