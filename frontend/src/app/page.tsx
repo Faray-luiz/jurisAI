@@ -1134,8 +1134,8 @@ export default function Home() {
     // Prepare prompt payload (only contains explicit user instructions to prevent guardrail false positives)
     let promptPayload = userMessageText;
 
-    // Determine task_type: use active mission if available, else fall back to keyword heuristics
-    let task_type = "default";
+    // Determine task_type: use active mission if available, else fall back to keyword heuristics or default to chat_livre
+    let task_type = "chat_livre";
     if (selectedMission) {
       task_type = selectedMission.task_type;
     } else if (userMessageText.toLowerCase().includes("petição") || attachedFile?.name.includes("peticao")) {
@@ -2416,8 +2416,8 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Active Mission / Chat Mode Header */}
-                {selectedMission && (
+                {/* Active Mission / Chat Mode Header (Structured Missions only) */}
+                {selectedMission && selectedMission.task_type !== "chat_livre" && (
                   <div style={{
                     background: "var(--surface)",
                     border: "1px solid var(--bordo)",
@@ -2460,7 +2460,7 @@ export default function Home() {
                 {/* Message Log */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px", marginBottom: "30px" }}>
                   {messages.map((msg, index) => {
-                    const isChatLivre = selectedMission?.task_type === "chat_livre";
+                    const isChatLivre = !selectedMission || selectedMission.task_type === "chat_livre";
                     
                     return (
                       <div 
@@ -2669,7 +2669,7 @@ export default function Home() {
                 )}
 
                 {/* Sleek, Agile Typing/Spinning Indicator for Chat Livre (Gemini/ChatGPT style) */}
-                {loading && selectedMission?.task_type === "chat_livre" && (
+                {loading && (!selectedMission || selectedMission?.task_type === "chat_livre") && (
                   <div style={{
                     alignSelf: "flex-start",
                     background: "var(--surface)",
@@ -2697,7 +2697,7 @@ export default function Home() {
                 )}
 
                 {/* Chat Livre Suggestion Chips */}
-                {selectedMission?.task_type === "chat_livre" && (
+                {(!selectedMission || selectedMission?.task_type === "chat_livre") && (
                   <div style={{
                     display: "flex",
                     gap: "10px",
@@ -2823,7 +2823,7 @@ export default function Home() {
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px", fontSize: "11px", color: "var(--ink-faint)" }}>
                     <span>Citações válidas geradas terão tags dinâmicas.</span>
-                    {selectedMission?.task_type === "chat_livre" && (
+                    {(!selectedMission || selectedMission?.task_type === "chat_livre") && (
                       <label style={{ 
                         display: "inline-flex", 
                         alignItems: "center", 
