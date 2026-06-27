@@ -909,6 +909,8 @@ def set_password(payload: SetPasswordPayload):
     """Validates invitation token and sets the user password. Marks invitation as accepted."""
     from backend.app.db.session import SessionLocal
     from backend.app.db.models import DBUser
+    if not payload.token or payload.token.strip() in ["", "undefined", "null"]:
+        raise HTTPException(status_code=400, detail="Token de convite inválido ou ausente.")
     db = SessionLocal()
     try:
         user_row = db.query(DBUser).filter(DBUser.invitation_token == payload.token).first()
@@ -928,7 +930,7 @@ def set_password(payload: SetPasswordPayload):
         user_row.invitation_accepted = True
         user_row.invitation_token = None   # invalidate token after use
         db.commit()
-        return {"status": "ok", "message": "Senha definida com sucesso. Você já pode fazer login."}
+        return {"status": "ok", "message": "Senha definida com sucesso. Você já pode fazer login.", "email": user_row.email}
     except HTTPException:
         raise
     except Exception as e:

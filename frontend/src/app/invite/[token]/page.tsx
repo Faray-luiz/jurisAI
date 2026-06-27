@@ -42,6 +42,9 @@ export default function InvitePage() {
       if (!res.ok) {
         setError(data.detail || "Erro ao ativar a conta.");
       } else {
+        if (data.email) {
+          localStorage.setItem("auth_email", data.email);
+        }
         setSuccess(true);
         setTimeout(() => router.push("/"), 3000);
       }
