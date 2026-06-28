@@ -4,12 +4,14 @@ import React from "react";
 import { Cpu, RefreshCw } from "lucide-react";
 
 interface TopbarProps {
-  activeTab: "chat" | "auditoria";
+  activeTab: "chat" | "missoes" | "auditoria";
   selectedProcess: any;
   onClearChat?: () => void;
 }
 
 export default function Topbar({ activeTab, selectedProcess, onClearChat }: TopbarProps) {
+  const isChatOrMissoes = activeTab === "chat" || activeTab === "missoes";
+
   return (
     <header className="topbar">
       {/* Breadcrumbs */}
@@ -17,9 +19,13 @@ export default function Topbar({ activeTab, selectedProcess, onClearChat }: Topb
         <span style={{ color: "var(--ink-faint)" }}>JurisAI Gateway</span>
         <span>/</span>
         <span style={{ fontWeight: 500, color: "var(--ink)" }}>
-          {activeTab === "chat" ? "Chat Contextual" : "Muralha & Auditoria"}
+          {activeTab === "chat" 
+            ? "Chat Livre" 
+            : activeTab === "missoes" 
+              ? "Central de Missões" 
+              : "Muralha & Auditoria"}
         </span>
-        {activeTab === "chat" && selectedProcess && (
+        {isChatOrMissoes && selectedProcess && (
           <>
             <span>/</span>
             <span style={{ color: "var(--bordo)", fontWeight: 600 }}>
@@ -31,7 +37,7 @@ export default function Topbar({ activeTab, selectedProcess, onClearChat }: Topb
 
       {/* Model indicator & Actions */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        {activeTab === "chat" && (
+        {isChatOrMissoes && (
           <div className="pill-router">
             <div className="dot" />
             <Cpu size={12} style={{ color: "var(--bordo)" }} />
@@ -39,7 +45,7 @@ export default function Topbar({ activeTab, selectedProcess, onClearChat }: Topb
           </div>
         )}
         
-        {activeTab === "chat" && onClearChat && (
+        {isChatOrMissoes && onClearChat && (
           <button 
             className="btn ghost" 
             onClick={onClearChat}

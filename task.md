@@ -1,13 +1,13 @@
-# Lista de Tarefas: Interface Fluida e Minimalista (Estilo Gemini)
+# Lista de Tarefas: Separação de Menu - Chat Livre vs Missões
 
-- `[x]` 1. Frontend: Redesenho das Mensagens do Chat Livre
-  - `[x]` Atualizar o estilo dos balões do Advogado (alinhamento, fundo suave, sem cabeçalhos)
-  - `[x]` Atualizar o estilo das respostas da JurisAI (fundo transparente, sem bordas, sem caixa)
-  - `[x]` Criar cabeçalho minimalista de marca para a JurisAI
-  - `[x]` Ajustar botões de ação para ficarem discretos no rodapé da mensagem
-- `[x]` 2. Frontend: Shimmer Loading & Input Pill
-  - `[x]` Adicionar animação Shimmer de gradiente linear bordo/dourado no loading do Chat Livre
-  - `[x]` Modificar a caixa de input principal para formato de pílula flutuante arredondada
+- `[x]` 1. Sidebar: Atualização de Navegação
+  - `[x]` Atualizar interface `SidebarProps` para suportar `activeTab: "chat" | "missoes" | "auditoria"`
+  - `[x]` Substituir "Chat & Missões" por dois botões distintos: "Chat Livre" e "Central de Missões"
+- `[x]` 2. Frontend: Gestão de Estado e Telas (`page.tsx`)
+  - `[x]` Mapear o tipo de `activeTab` para incluir `"missoes"`
+  - `[x]` Limpar a missão ativa (`setSelectedMission(null)`) ao clicar em "Chat Livre"
+  - `[x]` Ajustar o painel para exibir a galeria de missões estruturadas (sem o card de Chat Livre) na aba de missões
+  - `[x]` Ajustar o painel para ir direto ao chat (sem galeria) na aba de "Chat Livre"
 - `[x]` 3. Testes & Homologação
-  - `[x]` Executar build estático do frontend
-  - `[x]` Gerar walkthrough final
+  - `[x]` Executar build do frontend
+  - `[x]` Realizar commits e push para produção

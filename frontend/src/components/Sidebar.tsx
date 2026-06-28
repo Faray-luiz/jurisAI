@@ -14,19 +14,22 @@ import {
   BarChart2,
   UserCog,
   Target,
+  MessageSquare,
 } from "lucide-react";
 
 type AdminSubTab = "logs" | "modelos" | "rag" | "custos" | "usuarios" | "missoes";
 
 interface SidebarProps {
-  activeTab: "chat" | "auditoria";
-  setActiveTab: (tab: "chat" | "auditoria") => void;
+  activeTab: "chat" | "missoes" | "auditoria";
+  setActiveTab: (tab: "chat" | "missoes" | "auditoria") => void;
   adminSubTab: AdminSubTab;
   setAdminSubTab: (tab: AdminSubTab) => void;
   currentUser: any;
   usersList: any[];
   onUserChange: (email: string) => void;
   onLogout?: () => void;
+  onSelectChatLivre?: () => void;
+  onSelectMissoes?: () => void;
 }
 
 const GOV_ITEMS: { key: AdminSubTab; label: string; icon: React.ReactNode; sócioOnly?: boolean }[] = [
@@ -47,6 +50,8 @@ export default function Sidebar({
   usersList,
   onUserChange,
   onLogout,
+  onSelectChatLivre,
+  onSelectMissoes,
 }: SidebarProps) {
   if (!currentUser) return null;
 
@@ -86,13 +91,28 @@ export default function Sidebar({
       {/* Nav Section */}
       <div className="nav-label">Navegação</div>
 
-      {/* Chat & Missões */}
+      {/* Chat Livre */}
       <button
-        onClick={() => setActiveTab("chat")}
+        onClick={() => {
+          setActiveTab("chat");
+          if (onSelectChatLivre) onSelectChatLivre();
+        }}
         className={`nav-item ${activeTab === "chat" ? "active" : ""}`}
       >
-        <FileText size={17} />
-        <span>Chat &amp; Missões</span>
+        <MessageSquare size={17} />
+        <span>Chat Livre</span>
+      </button>
+
+      {/* Central de Missões */}
+      <button
+        onClick={() => {
+          setActiveTab("missoes");
+          if (onSelectMissoes) onSelectMissoes();
+        }}
+        className={`nav-item ${activeTab === "missoes" ? "active" : ""}`}
+      >
+        <Target size={17} />
+        <span>Central de Missões</span>
       </button>
 
       {/* Governança — expandable, Sócio & Compliance only */}

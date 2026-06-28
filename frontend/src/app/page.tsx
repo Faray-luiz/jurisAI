@@ -26,7 +26,7 @@ interface Message {
 }
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"chat" | "auditoria">("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "missoes" | "auditoria">("chat");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -2007,6 +2007,16 @@ export default function Home() {
         usersList={usersList}
         onUserChange={handleUserChange}
         onLogout={handleLogout}
+        onSelectChatLivre={() => {
+          setSelectedMission(null);
+          setMessages([]);
+          setInputText("");
+        }}
+        onSelectMissoes={() => {
+          setSelectedMission(null);
+          setMessages([]);
+          setInputText("");
+        }}
       />
 
       {/* Main Container */}
@@ -2020,7 +2030,7 @@ export default function Home() {
         {/* Scroll Area content */}
         <main className="scroll-area">
           <div className="wrap view">
-            {activeTab === "chat" ? (
+            {activeTab !== "auditoria" ? (
               /* ================== CHAT INTERFACE ================== */
               <div>
                 {/* Empty State / Intro */}
@@ -2276,101 +2286,48 @@ export default function Home() {
                       })()
                     )}
 
-                    {/* Central de Missões */}
-                    <span className="text-label" style={{ display: "block", marginBottom: "12px" }}>Central de Missões</span>
-                    
-                    {/* Chat Livre Card (Consultor Central) - Featured Prominent Card */}
-                    <div 
-                      className="card-premium animate-fade-in"
-                      onClick={() => handleMissionClick({
-                        id: "chat_livre",
-                        task_type: "chat_livre",
-                        display_name: "Consultor Central (Chat Livre)",
-                        icon: "💬",
-                        description: "Consulte todo o acervo legislativo e faça perguntas abertas sobre o processo ativo, jurisprudência e estratégias de defesa sem restrições de missão.",
-                        default_prompt: ""
-                      })}
-                      style={{
-                        cursor: "pointer",
-                        background: "linear-gradient(135deg, rgba(122, 46, 46, 0.06) 0%, rgba(20, 20, 20, 0.01) 100%)",
-                        border: "2px solid var(--bordo)",
+                    {/* Conditional rendering for Chat Livre vs Central de Missões */}
+                    {activeTab === "chat" ? (
+                      <div style={{ 
+                        marginTop: "24px", 
+                        padding: "24px", 
+                        background: "radial-gradient(circle at top left, rgba(122,46,46,0.02) 0%, var(--surface) 100%)", 
+                        border: "1px solid rgba(122, 46, 46, 0.12)", 
                         borderRadius: "14px",
-                        padding: "20px 24px",
-                        marginBottom: "20px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "20px",
-                        boxShadow: "var(--shadow-sm)",
-                        transition: "all 0.2s ease"
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                        <div style={{
-                          background: "var(--bordo)",
-                          color: "white",
-                          borderRadius: "50%",
-                          width: "44px",
-                          height: "44px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "22px",
-                          boxShadow: "0 4px 10px rgba(122, 46, 46, 0.25)"
-                        }}>
-                          💬
-                        </div>
-                        <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <h3 style={{ fontSize: "15.5px", fontWeight: 700, color: "var(--ink)", margin: 0, fontFamily: "'Fraunces', serif" }}>
-                              Consultor Central (Chat Livre)
-                            </h3>
-                            <span style={{
-                              background: "var(--bordo)",
-                              color: "white",
-                              fontSize: "8.5px",
-                              fontWeight: 700,
-                              textTransform: "uppercase",
-                              padding: "2px 6px",
-                              borderRadius: "4px",
-                              letterSpacing: "0.05em"
-                            }}>
-                              Grounding Global
-                            </span>
-                          </div>
-                          <p style={{ fontSize: "12.5px", color: "var(--ink-soft)", margin: "4px 0 0 0", lineHeight: "1.4" }}>
-                            Consulte todo o acervo ativo no banco, analise múltiplos documentos simultaneamente, planeje teses de defesa e faça perguntas livres sobre o caso ativo.
-                          </p>
-                        </div>
-                      </div>
-                      <div style={{
-                        color: "var(--bordo)",
-                        fontWeight: 600,
-                        fontSize: "13px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        whiteSpace: "nowrap"
+                        boxShadow: "var(--shadow-sm)"
                       }}>
-                        Iniciar Chat <span>→</span>
-                      </div>
-                    </div>
-
-                    <div className="card-grid">
-                      {missions.length === 0 ? (
-                        <div style={{ gridColumn: "1/-1", padding: "20px", textAlign: "center", color: "var(--ink-faint)", fontSize: "13px", border: "1px dashed var(--line)", borderRadius: "12px" }}>
-                          Nenhuma missão disponível. Um Sócio pode criar missões no painel Admin.
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                          <span style={{ fontSize: "16px" }}>💬</span>
+                          <h3 style={{ fontSize: "15px", fontWeight: 700, color: "var(--bordo)", margin: 0, fontFamily: "'Fraunces', serif" }}>
+                            Consultor Central (Chat Livre)
+                          </h3>
                         </div>
-                      ) : (
-                        missions.map(m => (
-                          <div key={m.id} className="card" onClick={() => handleMissionClick(m)}>
-                            <div className="ic" style={{ fontSize: "18px", lineHeight: 1 }}>{m.icon}</div>
-                            <h3>{m.display_name}</h3>
-                            <p>{m.description}</p>
-                          </div>
-                        ))
-                      )}
-                    </div>
+                        <p style={{ fontSize: "12.5px", color: "var(--ink-soft)", margin: 0, lineHeight: "1.5" }}>
+                          Este é o seu canal direto de diálogo livre com a JurisAI. Você pode consultar todo o acervo legislativo ativo, analisar múltiplos documentos simultaneamente, planejar teses de defesa e fazer perguntas abertas sobre o caso conectado.
+                        </p>
+                      </div>
+                    ) : (
+                      /* Central de Missões (Apenas na aba missoes) */
+                      <div>
+                        <span className="text-label" style={{ display: "block", marginBottom: "12px" }}>Central de Missões</span>
+                        
+                        <div className="card-grid">
+                          {missions.filter(m => m.task_type !== "chat_livre").length === 0 ? (
+                            <div style={{ gridColumn: "1/-1", padding: "20px", textAlign: "center", color: "var(--ink-faint)", fontSize: "13px", border: "1px dashed var(--line)", borderRadius: "12px" }}>
+                              Nenhuma missão disponível. Um Sócio pode criar missões no painel Admin.
+                            </div>
+                          ) : (
+                            missions.filter(m => m.task_type !== "chat_livre").map(m => (
+                              <div key={m.id} className="card" onClick={() => handleMissionClick(m)}>
+                                <div className="ic" style={{ fontSize: "18px", lineHeight: 1 }}>{m.icon}</div>
+                                <h3>{m.display_name}</h3>
+                                <p>{m.description}</p>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -2669,243 +2626,248 @@ export default function Home() {
                 })}
                 </div>
 
-                {/* Guardrail Pipelines Visualizer (Structured Missions only) */}
-                {loading && selectedMission?.task_type !== "chat_livre" && (
-                  <div style={{ marginBottom: "30px", animation: "fade-in 0.3s ease both" }}>
-                    <span className="text-label" style={{ display: "block", marginBottom: "10px" }}>
-                      Esteira de Proteção Síncrona (Guardrails)
-                    </span>
-                    <div className={`pstep ${pipelineStep >= 1 ? "active" : ""} ${pipelineStep > 1 ? "done" : ""}`}>
-                      <div className="pic">
-                        {pipelineStep > 1 ? <CheckCircle size={16} /> : "1"}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: "13px" }}>Guardrail de Entrada</div>
-                        <div style={{ fontSize: "11.5px", color: "var(--ink-soft)" }}>Varrendo prompt em busca de fuga de papel / injection...</div>
-                      </div>
-                    </div>
+                {/* Render input area, suggestion chips, and loading indicators only when in Chat Livre or inside an active mission */}
+                {(activeTab === "chat" || selectedMission !== null) && (
+                  <>
+                    {/* Guardrail Pipelines Visualizer (Structured Missions only) */}
+                    {loading && selectedMission?.task_type !== "chat_livre" && (
+                      <div style={{ marginBottom: "30px", animation: "fade-in 0.3s ease both" }}>
+                        <span className="text-label" style={{ display: "block", marginBottom: "10px" }}>
+                          Esteira de Proteção Síncrona (Guardrails)
+                        </span>
+                        <div className={`pstep ${pipelineStep >= 1 ? "active" : ""} ${pipelineStep > 1 ? "done" : ""}`}>
+                          <div className="pic">
+                            {pipelineStep > 1 ? <CheckCircle size={16} /> : "1"}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: "13px" }}>Guardrail de Entrada</div>
+                            <div style={{ fontSize: "11.5px", color: "var(--ink-soft)" }}>Varrendo prompt em busca de fuga de papel / injection...</div>
+                          </div>
+                        </div>
 
-                    <div className={`pstep ${pipelineStep >= 2 ? "active" : ""} ${pipelineStep > 2 ? "done" : ""}`}>
-                      <div className="pic">
-                        {pipelineStep > 2 ? <CheckCircle size={16} /> : "2"}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: "13px" }}>Estimativa Pré-Voo & Quota</div>
-                        <div style={{ fontSize: "11.5px", color: "var(--ink-soft)" }}>Calculando tokens e garantindo saldo financeiro síncrono...</div>
-                      </div>
-                    </div>
+                        <div className={`pstep ${pipelineStep >= 2 ? "active" : ""} ${pipelineStep > 2 ? "done" : ""}`}>
+                          <div className="pic">
+                            {pipelineStep > 2 ? <CheckCircle size={16} /> : "2"}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: "13px" }}>Estimativa Pré-Voo & Quota</div>
+                            <div style={{ fontSize: "11.5px", color: "var(--ink-soft)" }}>Calculando tokens e garantindo saldo financeiro síncrono...</div>
+                          </div>
+                        </div>
 
-                    <div className={`pstep ${pipelineStep >= 3 ? "active" : ""} ${pipelineStep > 3 ? "done" : ""}`}>
-                      <div className="pic">
-                        {pipelineStep > 3 ? <CheckCircle size={16} /> : "3"}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: "13px" }}>Roteamento Invisível</div>
-                        <div style={{ fontSize: "11.5px", color: "var(--ink-soft)" }}>Chamando modelo agnóstico (Claude/GPT) e aplicando temperaturas...</div>
-                      </div>
-                    </div>
+                        <div className={`pstep ${pipelineStep >= 3 ? "active" : ""} ${pipelineStep > 3 ? "done" : ""}`}>
+                          <div className="pic">
+                            {pipelineStep > 3 ? <CheckCircle size={16} /> : "3"}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: "13px" }}>Roteamento Invisível</div>
+                            <div style={{ fontSize: "11.5px", color: "var(--ink-soft)" }}>Chamando modelo agnóstico (Claude/GPT) e aplicando temperaturas...</div>
+                          </div>
+                        </div>
 
-                    <div className={`pstep ${pipelineStep >= 4 ? "active" : ""}`}>
-                      <div className="pic">
-                        {loading && pipelineStep === 4 ? <Loader2 size={16} className="spin" /> : "4"}
+                        <div className={`pstep ${pipelineStep >= 4 ? "active" : ""}`}>
+                          <div className="pic">
+                            {loading && pipelineStep === 4 ? <Loader2 size={16} className="spin" /> : "4"}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: "13px" }}>Grounding Deterministico & PII</div>
+                            <div style={{ fontSize: "11.5px", color: "var(--ink-soft)" }}>Confrontando citações jurídicas no LexML e ocultando PII...</div>
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: "13px" }}>Grounding Deterministico & PII</div>
-                        <div style={{ fontSize: "11.5px", color: "var(--ink-soft)" }}>Confrontando citações jurídicas no LexML e ocultando PII...</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                    )}
 
-                {/* Sleek, Gemini-Style Gradient Shimmer Loading for Chat Livre */}
-                {loading && (!selectedMission || selectedMission?.task_type === "chat_livre") && (
-                  <div style={{
-                    alignSelf: "stretch",
-                    padding: "16px 0",
-                    marginBottom: "30px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "12px",
-                    animation: "fade-in 0.3s ease both"
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span style={{ fontSize: "14px" }}>⚖️</span> 
-                      <strong style={{ fontFamily: "'Fraunces', serif", fontSize: "14.5px", color: "var(--bordo)", fontWeight: 600 }}>JurisAI</strong>
-                      <span style={{ fontSize: "11px", color: "var(--ink-faint)", fontWeight: 500, marginLeft: "4px" }}>
-                        formulando resposta jurídica...
-                      </span>
-                    </div>
-                    {/* Gemini Shimmer Gradient Bars */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
-                      <div className="gemini-shimmer" style={{ height: "10px", borderRadius: "5px", width: "80%" }}></div>
-                      <div className="gemini-shimmer" style={{ height: "10px", borderRadius: "5px", width: "95%" }}></div>
-                      <div className="gemini-shimmer" style={{ height: "10px", borderRadius: "5px", width: "60%" }}></div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Chat Livre Suggestion Chips */}
-                {(!selectedMission || selectedMission?.task_type === "chat_livre") && (
-                  <div style={{
-                    display: "flex",
-                    gap: "10px",
-                    overflowX: "auto",
-                    padding: "8px 0",
-                    marginBottom: "12px",
-                    scrollbarWidth: "none",
-                    msOverflowStyle: "none"
-                  }}>
-                    {[
-                      "Buscar contradições nos documentos do caso",
-                      "Identificar fragilidades jurídicas na petição inicial",
-                      "Sugestões de teses de defesa para contestação",
-                      "Verificar jurisprudências e súmulas aplicáveis"
-                    ].map((chip, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setInputText(chip)}
-                        style={{
-                          background: "rgba(122, 46, 46, 0.04)",
-                          border: "1px solid rgba(122, 46, 46, 0.15)",
-                          color: "var(--bordo)",
-                          fontSize: "12px",
-                          fontWeight: 500,
-                          padding: "6px 12px",
-                          borderRadius: "20px",
-                          cursor: "pointer",
-                          whiteSpace: "nowrap",
-                          transition: "all 0.2s ease"
-                        }}
-                      >
-                        {chip}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Input area */}
-                <form 
-                  onSubmit={handleSendMessage} 
-                  style={{ 
-                    background: "var(--surface)", 
-                    border: "1px solid var(--line)", 
-                    borderRadius: isChatLivre ? "28px" : "14px", 
-                    padding: isChatLivre ? "10px 18px" : "16px", 
-                    boxShadow: "var(--shadow-lg)",
-                    transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
-                  }}
-                >
-                  {attachedFile && (
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--paper-2)", border: "1px solid var(--line)", padding: "10px 14px", borderRadius: "9px", marginBottom: "12px", fontSize: "13px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 600 }}>
-                        <FileText size={16} style={{ color: "var(--bordo)" }} />
-                        <span>{attachedFile.name}</span>
-                      </div>
-                      
-                      <div style={{ display: "flex", gap: "8px" }}>
-                        {!sanitizedFile ? (
-                          <button
-                            type="button"
-                            className="btn"
-                            onClick={runSanitization}
-                            disabled={sanitizing}
-                            style={{ padding: "6px 12px", fontSize: "12px", background: "var(--bordo-2)" }}
-                          >
-                            {sanitizing ? <Loader2 size={13} className="spin" /> : <ShieldAlert size={13} />}
-                            <span>Sanitizar PDF</span>
-                          </button>
-                        ) : (
-                          <span style={{ color: "var(--verde)", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 600 }}>
-                            <ShieldCheck size={14} /> Sanitizado (Instruções Isoladas)
+                    {/* Sleek, Gemini-Style Gradient Shimmer Loading for Chat Livre */}
+                    {loading && (!selectedMission || selectedMission?.task_type === "chat_livre") && (
+                      <div style={{
+                        alignSelf: "stretch",
+                        padding: "16px 0",
+                        marginBottom: "30px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "12px",
+                        animation: "fade-in 0.3s ease both"
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span style={{ fontSize: "14px" }}>⚖️</span> 
+                          <strong style={{ fontFamily: "'Fraunces', serif", fontSize: "14.5px", color: "var(--bordo)", fontWeight: 600 }}>JurisAI</strong>
+                          <span style={{ fontSize: "11px", color: "var(--ink-faint)", fontWeight: 500, marginLeft: "4px" }}>
+                            formulando resposta jurídica...
                           </span>
-                        )}
-                        
-                        <button 
-                          type="button" 
-                          onClick={() => { setAttachedFile(null); setSanitizedFile(null); }}
-                          style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ink-faint)", marginLeft: "8px" }}
+                        </div>
+                        {/* Gemini Shimmer Gradient Bars */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
+                          <div className="gemini-shimmer" style={{ height: "10px", borderRadius: "5px", width: "80%" }}></div>
+                          <div className="gemini-shimmer" style={{ height: "10px", borderRadius: "5px", width: "95%" }}></div>
+                          <div className="gemini-shimmer" style={{ height: "10px", borderRadius: "5px", width: "60%" }}></div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Chat Livre Suggestion Chips */}
+                    {(!selectedMission || selectedMission?.task_type === "chat_livre") && (
+                      <div style={{
+                        display: "flex",
+                        gap: "10px",
+                        overflowX: "auto",
+                        padding: "8px 0",
+                        marginBottom: "12px",
+                        scrollbarWidth: "none",
+                        msOverflowStyle: "none"
+                      }}>
+                        {[
+                          "Buscar contradições nos documentos do caso",
+                          "Identificar fragilidades jurídicas na petição inicial",
+                          "Sugestões de teses de defesa para contestação",
+                          "Verificar jurisprudências e súmulas aplicáveis"
+                        ].map((chip, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setInputText(chip)}
+                            style={{
+                              background: "rgba(122, 46, 46, 0.04)",
+                              border: "1px solid rgba(122, 46, 46, 0.15)",
+                              color: "var(--bordo)",
+                              fontSize: "12px",
+                              fontWeight: 500,
+                              padding: "6px 12px",
+                              borderRadius: "20px",
+                              cursor: "pointer",
+                              whiteSpace: "nowrap",
+                              transition: "all 0.2s ease"
+                            }}
+                          >
+                            {chip}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Input area */}
+                    <form 
+                      onSubmit={handleSendMessage} 
+                      style={{ 
+                        background: "var(--surface)", 
+                        border: "1px solid var(--line)", 
+                        borderRadius: isChatLivre ? "28px" : "14px", 
+                        padding: isChatLivre ? "10px 18px" : "16px", 
+                        boxShadow: "var(--shadow-lg)",
+                        transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
+                      }}
+                    >
+                      {attachedFile && (
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--paper-2)", border: "1px solid var(--line)", padding: "10px 14px", borderRadius: "9px", marginBottom: "12px", fontSize: "13px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 600 }}>
+                            <FileText size={16} style={{ color: "var(--bordo)" }} />
+                            <span>{attachedFile.name}</span>
+                          </div>
+                          
+                          <div style={{ display: "flex", gap: "8px" }}>
+                            {!sanitizedFile ? (
+                              <button
+                                type="button"
+                                className="btn"
+                                onClick={runSanitization}
+                                disabled={sanitizing}
+                                style={{ padding: "6px 12px", fontSize: "12px", background: "var(--bordo-2)" }}
+                              >
+                                {sanitizing ? <Loader2 size={13} className="spin" /> : <ShieldAlert size={13} />}
+                                <span>Sanitizar PDF</span>
+                              </button>
+                            ) : (
+                              <span style={{ color: "var(--verde)", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 600 }}>
+                                <ShieldCheck size={14} /> Sanitizado (Instruções Isoladas)
+                              </span>
+                            )}
+                            
+                            <button 
+                              type="button" 
+                              onClick={() => { setAttachedFile(null); setSanitizedFile(null); }}
+                              style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ink-faint)", marginLeft: "8px" }}
+                            >
+                              Remover
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{ display: "flex", gap: "12px" }}>
+                        <button
+                          type="button"
+                          className="btn ghost"
+                          onClick={() => fileInputRef.current?.click()}
+                          style={{ padding: "10px", width: "40px", height: "40px", placeContent: "center", borderRadius: isChatLivre ? "20px" : "9px" }}
+                          title="Anexar PDF Judicial"
+                          disabled={loading || uploadingFile}
                         >
-                          Remover
+                          {uploadingFile ? <Loader2 size={17} className="spin" /> : <Upload size={17} />}
+                        </button>
+                        <input 
+                          type="file" 
+                          ref={fileInputRef} 
+                          onChange={handleFileChange} 
+                          style={{ display: "none" }} 
+                          accept=".pdf,.txt"
+                        />
+
+                        <input
+                          id="chat-input-field"
+                          type="text"
+                          value={inputText}
+                          onChange={(e) => setInputText(e.target.value)}
+                          placeholder="Redija sua instrução ou rascunho de contestação..."
+                          style={{
+                            flex: 1,
+                            border: "1px solid var(--line)",
+                            borderRadius: isChatLivre ? "20px" : "9px",
+                            padding: "10px 16px",
+                            fontSize: "14px",
+                            fontFamily: "inherit",
+                            outline: "none",
+                            background: "#fff"
+                          }}
+                          disabled={loading}
+                        />
+
+                        <button
+                          type="submit"
+                          className="btn"
+                          style={{ padding: "10px", width: "40px", height: "40px", placeContent: "center", borderRadius: isChatLivre ? "20px" : "9px" }}
+                          disabled={loading || (!inputText.trim() && !attachedFile)}
+                        >
+                          {loading ? <Loader2 size={17} className="spin" /> : <Send size={17} />}
                         </button>
                       </div>
-                    </div>
-                  )}
-
-                  <div style={{ display: "flex", gap: "12px" }}>
-                    <button
-                      type="button"
-                      className="btn ghost"
-                      onClick={() => fileInputRef.current?.click()}
-                      style={{ padding: "10px", width: "40px", height: "40px", placeContent: "center", borderRadius: isChatLivre ? "20px" : "9px" }}
-                      title="Anexar PDF Judicial"
-                      disabled={loading || uploadingFile}
-                    >
-                      {uploadingFile ? <Loader2 size={17} className="spin" /> : <Upload size={17} />}
-                    </button>
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      onChange={handleFileChange} 
-                      style={{ display: "none" }} 
-                      accept=".pdf,.txt"
-                    />
-
-                    <input
-                      id="chat-input-field"
-                      type="text"
-                      value={inputText}
-                      onChange={(e) => setInputText(e.target.value)}
-                      placeholder="Redija sua instrução ou rascunho de contestação..."
-                      style={{
-                        flex: 1,
-                        border: "1px solid var(--line)",
-                        borderRadius: isChatLivre ? "20px" : "9px",
-                        padding: "10px 16px",
-                        fontSize: "14px",
-                        fontFamily: "inherit",
-                        outline: "none",
-                        background: "#fff"
-                      }}
-                      disabled={loading}
-                    />
-
-                    <button
-                      type="submit"
-                      className="btn"
-                      style={{ padding: "10px", width: "40px", height: "40px", placeContent: "center", borderRadius: isChatLivre ? "20px" : "9px" }}
-                      disabled={loading || (!inputText.trim() && !attachedFile)}
-                    >
-                      {loading ? <Loader2 size={17} className="spin" /> : <Send size={17} />}
-                    </button>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px", fontSize: "11px", color: "var(--ink-faint)" }}>
-                    <span>Citações válidas geradas terão tags dinâmicas.</span>
-                    {(!selectedMission || selectedMission?.task_type === "chat_livre") && (
-                      <label style={{ 
-                        display: "inline-flex", 
-                        alignItems: "center", 
-                        gap: "6px", 
-                        cursor: "pointer",
-                        fontWeight: 600,
-                        color: "var(--bordo)",
-                        background: "rgba(122, 46, 46, 0.05)",
-                        padding: "4px 10px",
-                        borderRadius: "6px",
-                        border: "1px solid rgba(122, 46, 46, 0.15)"
-                      }}>
-                        <input 
-                          type="checkbox" 
-                          checked={webSearchEnabled}
-                          onChange={(e) => setWebSearchEnabled(e.target.checked)}
-                          style={{ accentColor: "var(--bordo)", cursor: "pointer" }}
-                        />
-                        <span>Pesquisa Jurídica na Web (Oficial)</span>
-                      </label>
-                    )}
-                    <span>Ancoragem determinística síncrona.</span>
-                  </div>
-                </form>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px", fontSize: "11px", color: "var(--ink-faint)" }}>
+                        <span>Citações válidas geradas terão tags dinâmicas.</span>
+                        {(!selectedMission || selectedMission?.task_type === "chat_livre") && (
+                          <label style={{ 
+                            display: "inline-flex", 
+                            alignItems: "center", 
+                            gap: "6px", 
+                            cursor: "pointer",
+                            fontWeight: 600,
+                            color: "var(--bordo)",
+                            background: "rgba(122, 46, 46, 0.05)",
+                            padding: "4px 10px",
+                            borderRadius: "6px",
+                            border: "1px solid rgba(122, 46, 46, 0.15)"
+                          }}>
+                            <input 
+                              type="checkbox" 
+                              checked={webSearchEnabled}
+                              onChange={(e) => setWebSearchEnabled(e.target.checked)}
+                              style={{ accentColor: "var(--bordo)", cursor: "pointer" }}
+                            />
+                            <span>Pesquisa Jurídica na Web (Oficial)</span>
+                          </label>
+                        )}
+                        <span>Ancoragem determinística síncrona.</span>
+                      </div>
+                    </form>
+                  </>
+                )}
               </div>
             ) : (
               /* ================== ADMIN / AUDIT VIEW ================== */
