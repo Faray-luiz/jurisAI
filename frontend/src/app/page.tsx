@@ -5,7 +5,7 @@ import {
   Send, ShieldAlert, DollarSign, Loader2, Sparkles, 
   Upload, FileText, CheckCircle, AlertTriangle, ShieldCheck, 
   Search, Edit3, HelpCircle, Copy, Cpu, ChevronDown, ChevronRight, Download,
-  RefreshCw, FileEdit
+  RefreshCw, FileEdit, History, Paperclip
 } from "lucide-react";
 
 import Sidebar from "@/components/Sidebar";
@@ -14,6 +14,45 @@ import CitationChip from "@/components/CitationChip";
 import CitationDrawer from "@/components/CitationDrawer";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+const OwlAvatar = () => (
+  <div style={{
+    width: "44px",
+    height: "44px",
+    borderRadius: "50%",
+    background: "#F2EFE9",
+    border: "1.5px solid #E6DFD5",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    boxShadow: "0 2px 6px rgba(51, 42, 36, 0.05)",
+    flexShrink: 0
+  }}>
+    <svg viewBox="0 0 100 100" style={{ width: "85%", height: "85%" }}>
+      {/* Ears/Horn Feathers */}
+      <path d="M25 22 L42 32 L32 16 Z" fill="#5C524B" />
+      <path d="M75 22 L58 32 L68 16 Z" fill="#5C524B" />
+      {/* Body & Wings */}
+      <circle cx="50" cy="55" r="34" fill="#3D332C" />
+      <path d="M18 55 C18 45 25 35 35 35 C28 45 28 65 35 75 C25 75 18 65 18 55 Z" fill="#5C524B" />
+      <path d="M82 55 C82 45 75 35 65 35 C72 45 72 65 65 75 C75 75 82 65 82 55 Z" fill="#5C524B" />
+      {/* Face plate */}
+      <path d="M50 36 C36 36 30 45 30 55 C30 65 38 74 50 74 C62 74 70 65 70 55 C70 45 64 36 50 36 Z" fill="#FAF9F6" />
+      {/* Eye discs */}
+      <circle cx="41" cy="51" r="10" fill="#E6DFD5" />
+      <circle cx="41" cy="51" r="8" fill="#FCECD6" />
+      <circle cx="41" cy="51" r="4" fill="#332A24" />
+      
+      <circle cx="59" cy="51" r="10" fill="#E6DFD5" />
+      <circle cx="59" cy="51" r="8" fill="#FCECD6" />
+      <circle cx="59" cy="51" r="4" fill="#332A24" />
+      {/* Beak */}
+      <polygon points="50,53 46,61 54,61" fill="#8C611B" />
+    </svg>
+  </div>
+);
+
 
 interface Message {
   role: "user" | "assistant";
@@ -2021,18 +2060,329 @@ export default function Home() {
 
       {/* Main Container */}
       <div className="main-content">
-        <Topbar 
-          activeTab={activeTab} 
-          selectedProcess={processes.find(p => p.id === selectedProcessId)}
-          onClearChat={() => setMessages([])}
-        />
+        {activeTab !== "chat" && (
+          <Topbar 
+            activeTab={activeTab} 
+            selectedProcess={processes.find(p => p.id === selectedProcessId)}
+            onClearChat={() => setMessages([])}
+          />
+        )}
 
         {/* Scroll Area content */}
         <main className="scroll-area">
           <div className="wrap view">
             {activeTab !== "auditoria" ? (
-              /* ================== CHAT INTERFACE ================== */
-              <div>
+              activeTab === "chat" ? (
+                /* ================== CHAT LIVRE (CSRM AI) ================== */
+                <div style={{ display: "flex", flexDirection: "column", gap: "24px", height: "100%", minHeight: "calc(100vh - 120px)" }}>
+                  {/* Title & Sparkles Header */}
+                  <div style={{ padding: "8px 8px 0px", animation: "fade-in 0.5s ease both" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--bordo)", marginBottom: "8px" }}>
+                      <Sparkles size={16} style={{ color: "var(--bordo)" }} />
+                      <span className="text-eyebrow" style={{ fontSize: "11.5px", letterSpacing: "0.12em", fontWeight: 600 }}>BEM-VINDO AO CSRM AI</span>
+                    </div>
+                    <h1 className="text-hero" style={{ fontSize: "30px", fontWeight: 400, color: "var(--ink)", marginBottom: "8px", fontFamily: "'Playfair Display', serif" }}>
+                      Inteligência de Apoio Jurídico Confiável
+                    </h1>
+                    <p className="text-body" style={{ fontSize: "13px", color: "var(--ink-soft)", lineHeight: "1.5", margin: 0 }}>
+                      Selecione uma matéria, use um dos nossos templates de missões frequentes ou inicie um chat. Cada citação gerada é confrontada síncronamente contra fontes oficiais da legislação.
+                    </p>
+                  </div>
+
+                  {/* Floating Chat Card */}
+                  <div style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--line)",
+                    borderRadius: "16px",
+                    boxShadow: "var(--shadow)",
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "600px",
+                    position: "relative",
+                    overflow: "hidden"
+                  }}>
+                    {/* Card Header Actions (Clock/History Button) */}
+                    <div style={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      padding: "16px 20px 8px",
+                      position: "absolute",
+                      top: 0,
+                      right: 0,
+                      zIndex: 10
+                    }}>
+                      <button
+                        type="button"
+                        onClick={() => setMessages([])}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "var(--ink-faint)",
+                          cursor: "pointer",
+                          transition: "color 0.2s"
+                        }}
+                        title="Limpar Conversa"
+                      >
+                        <RefreshCw size={17} />
+                      </button>
+                    </div>
+
+                    {/* Chat Messages Log */}
+                    <div style={{
+                      flex: 1,
+                      overflowY: "auto",
+                      padding: "32px 32px 16px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "24px"
+                    }}>
+                      {messages.length === 0 ? (
+                        /* Welcome from Minerva */
+                        <div style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: "14px",
+                          animation: "fade-in 0.3s ease both"
+                        }}>
+                          <OwlAvatar />
+                          <div>
+                            <div style={{
+                              background: "#FCECD6",
+                              border: "1px solid rgba(185, 164, 130, 0.25)",
+                              borderRadius: "9px 20px 20px 20px",
+                              padding: "12px 18px",
+                              boxShadow: "0 2px 8px rgba(51, 42, 36, 0.02)"
+                            }}>
+                              <span style={{ fontSize: "14px", color: "var(--ink)", fontWeight: 500 }}>
+                                {`Oi ${currentUser ? currentUser.name.split(" ")[0] : "Luiz"}, como posso te ajudar?`}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: "10px", color: "var(--ink-faint)", marginLeft: "4px", marginTop: "4px", display: "block" }}>
+                              agora mesmo
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Actual messages */
+                        messages.map((msg, index) => (
+                          <div 
+                            key={index} 
+                            style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "14px",
+                              alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
+                              maxWidth: "85%",
+                              flexDirection: msg.role === "user" ? "row-reverse" : "row",
+                              animation: "fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both"
+                            }}
+                          >
+                            {msg.role === "assistant" ? <OwlAvatar /> : (
+                              <div style={{
+                                width: "36px",
+                                height: "36px",
+                                borderRadius: "50%",
+                                background: "var(--paper-2)",
+                                color: "var(--ink-soft)",
+                                display: "grid",
+                                placeItems: "center",
+                                fontSize: "13px",
+                                fontWeight: 600,
+                                flexShrink: 0
+                              }}>
+                                {currentUser ? currentUser.name.substring(0, 2).toUpperCase() : "LZ"}
+                              </div>
+                            )}
+                            <div>
+                              <div style={{
+                                background: msg.role === "user" ? "rgba(185, 164, 130, 0.08)" : "#FFFFFF",
+                                border: msg.role === "user" ? "1px solid rgba(185, 164, 130, 0.15)" : "1px solid var(--line)",
+                                borderRadius: msg.role === "user" ? "20px 9px 20px 20px" : "9px 20px 20px 20px",
+                                padding: "12px 18px",
+                                boxShadow: "0 2px 12px rgba(51, 42, 36, 0.02)"
+                              }}>
+                                <div className={msg.role === "assistant" ? "text-doc" : "text-body"}>
+                                  {msg.role === "assistant" && !msg.error
+                                    ? renderMessageWithChips(msg.content, msg.citations)
+                                    : msg.content
+                                  }
+                                </div>
+                              </div>
+                              {msg.role === "assistant" && msg.model && (
+                                <span style={{ fontSize: "10px", color: "var(--ink-faint)", marginLeft: "4px", marginTop: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
+                                  <Cpu size={10} /> {msg.model} {msg.cost && `| $${msg.cost.toFixed(4)}`}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+
+                      {/* Loading shimmer inside card */}
+                      {loading && (
+                        <div style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: "14px",
+                          animation: "fade-in 0.3s ease both"
+                        }}>
+                          <OwlAvatar />
+                          <div style={{ width: "70%" }}>
+                            <div style={{
+                              background: "#FFFFFF",
+                              border: "1px solid var(--line)",
+                              borderRadius: "9px 20px 20px 20px",
+                              padding: "16px 20px",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "10px"
+                            }}>
+                              <div className="gemini-shimmer" style={{ height: "10px", borderRadius: "5px", width: "80%" }}></div>
+                              <div className="gemini-shimmer" style={{ height: "10px", borderRadius: "5px", width: "95%" }}></div>
+                              <div className="gemini-shimmer" style={{ height: "10px", borderRadius: "5px", width: "60%" }}></div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer region inside card */}
+                    <div style={{
+                      padding: "16px 32px 32px",
+                      background: "linear-gradient(to top, var(--surface) 80%, rgba(255,255,255,0))",
+                      borderTop: "1px solid var(--line)"
+                    }}>
+                      {/* File attachment preview */}
+                      {attachedFile && (
+                        <div style={{ 
+                          display: "flex", 
+                          alignItems: "center", 
+                          justifyContent: "space-between", 
+                          background: "var(--paper-2)", 
+                          border: "1px solid var(--line)", 
+                          padding: "8px 12px", 
+                          borderRadius: "9px", 
+                          marginBottom: "12px", 
+                          fontSize: "12.5px" 
+                        }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 600 }}>
+                            <FileText size={15} style={{ color: "var(--bordo)" }} />
+                            <span>{attachedFile.name}</span>
+                          </div>
+                          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                            {!sanitizedFile ? (
+                              <button
+                                type="button"
+                                className="btn"
+                                onClick={runSanitization}
+                                disabled={sanitizing}
+                                style={{ padding: "4px 10px", fontSize: "11px", background: "var(--bordo)" }}
+                              >
+                                {sanitizing ? <Loader2 size={12} className="spin" /> : <ShieldAlert size={12} />}
+                                <span>Sanitizar PDF</span>
+                              </button>
+                            ) : (
+                              <span style={{ color: "var(--verde)", display: "flex", alignItems: "center", gap: "4px", fontSize: "11.5px", fontWeight: 600 }}>
+                                <ShieldCheck size={13} /> Sanitizado
+                              </span>
+                            )}
+                            <button 
+                              type="button" 
+                              onClick={() => { setAttachedFile(null); setSanitizedFile(null); }}
+                              style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ink-faint)", fontSize: "12px" }}
+                            >
+                              Remover
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Disclaimer */}
+                      <div style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        fontSize: "11px",
+                        color: "var(--ink-faint)",
+                        marginBottom: "14px",
+                        gap: "4px"
+                      }}>
+                        <span>🔒 Suas mensagens são processadas por IA para gerar respostas. Seus dados não são usados para treinamento.</span>
+                        <a href="#" style={{ color: "var(--bordo)", textDecoration: "none", fontWeight: 600 }}>Política de Privacidade</a>
+                      </div>
+
+                      {/* Input Box Form */}
+                      <form onSubmit={handleSendMessage} style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                        <button
+                          type="button"
+                          className="btn ghost"
+                          onClick={() => fileInputRef.current?.click()}
+                          style={{ 
+                            padding: "10px", 
+                            width: "44px", 
+                            height: "44px", 
+                            placeContent: "center", 
+                            borderRadius: "9px", 
+                            border: "1px solid var(--line)",
+                            background: "var(--paper-2)",
+                            color: "var(--ink-soft)" 
+                          }}
+                          title="Anexar PDF Judicial"
+                          disabled={loading || uploadingFile}
+                        >
+                          {uploadingFile ? <Loader2 size={17} className="spin" /> : <Paperclip size={17} />}
+                        </button>
+                        <input 
+                          type="file" 
+                          ref={fileInputRef} 
+                          onChange={handleFileChange} 
+                          style={{ display: "none" }} 
+                          accept=".pdf,.txt"
+                        />
+
+                        <input
+                          id="chat-input-field-minerva"
+                          type="text"
+                          value={inputText}
+                          onChange={(e) => setInputText(e.target.value)}
+                          placeholder="Digite sua mensagem..."
+                          style={{
+                            flex: 1,
+                            border: "1px solid #332A24",
+                            borderRadius: "9px",
+                            padding: "12px 18px",
+                            fontSize: "14.5px",
+                            fontFamily: "inherit",
+                            outline: "none",
+                            background: "#fff",
+                            color: "#332A24"
+                          }}
+                          disabled={loading}
+                        />
+
+                        <button
+                          type="submit"
+                          className="btn"
+                          style={{ 
+                            padding: "10px", 
+                            width: "44px", 
+                            height: "44px", 
+                            placeContent: "center", 
+                            borderRadius: "9px",
+                            background: "var(--bordo)",
+                            color: "#fff"
+                          }}
+                          disabled={loading || (!inputText.trim() && !attachedFile)}
+                        >
+                          {loading ? <Loader2 size={17} className="spin" /> : <Send size={17} />}
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* ================== CENTRAL DE MISSÕES ================== */
+                <div>
                 {/* Empty State / Intro */}
                 {messages.length === 0 && (
                   <div style={{ marginBottom: "40px", animation: "fade-in 0.5s ease both" }}>
@@ -2286,48 +2636,26 @@ export default function Home() {
                       })()
                     )}
 
-                    {/* Conditional rendering for Chat Livre vs Central de Missões */}
-                    {activeTab === "chat" ? (
-                      <div style={{ 
-                        marginTop: "24px", 
-                        padding: "24px", 
-                        background: "radial-gradient(circle at top left, rgba(122,46,46,0.02) 0%, var(--surface) 100%)", 
-                        border: "1px solid rgba(122, 46, 46, 0.12)", 
-                        borderRadius: "14px",
-                        boxShadow: "var(--shadow-sm)"
-                      }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                          <span style={{ fontSize: "16px" }}>💬</span>
-                          <h3 style={{ fontSize: "15px", fontWeight: 700, color: "var(--bordo)", margin: 0, fontFamily: "'Playfair Display', serif" }}>
-                            Consultor Central (Chat Livre)
-                          </h3>
-                        </div>
-                        <p style={{ fontSize: "12.5px", color: "var(--ink-soft)", margin: 0, lineHeight: "1.5" }}>
-                          Este é o seu canal direto de diálogo livre com o CSRM AI. Você pode consultar todo o acervo legislativo ativo, analisar múltiplos documentos simultaneamente, planejar teses de defesa e fazer perguntas abertas sobre o caso conectado.
-                        </p>
-                      </div>
-                    ) : (
-                      /* Central de Missões (Apenas na aba missoes) */
-                      <div>
-                        <span className="text-label" style={{ display: "block", marginBottom: "12px" }}>Central de Missões</span>
-                        
-                        <div className="card-grid">
-                          {missions.filter(m => m.task_type !== "chat_livre").length === 0 ? (
-                            <div style={{ gridColumn: "1/-1", padding: "20px", textAlign: "center", color: "var(--ink-faint)", fontSize: "13px", border: "1px dashed var(--line)", borderRadius: "12px" }}>
-                              Nenhuma missão disponível. Um Sócio pode criar missões no painel Admin.
+                    {/* Central de Missões */}
+                    <div>
+                      <span className="text-label" style={{ display: "block", marginBottom: "12px" }}>Central de Missões</span>
+                      
+                      <div className="card-grid">
+                        {missions.filter(m => m.task_type !== "chat_livre").length === 0 ? (
+                          <div style={{ gridColumn: "1/-1", padding: "20px", textAlign: "center", color: "var(--ink-faint)", fontSize: "13px", border: "1px dashed var(--line)", borderRadius: "12px" }}>
+                            Nenhuma missão disponível. Um Sócio pode criar missões no painel Admin.
+                          </div>
+                        ) : (
+                          missions.filter(m => m.task_type !== "chat_livre").map(m => (
+                            <div key={m.id} className="card" onClick={() => handleMissionClick(m)}>
+                              <div className="ic" style={{ fontSize: "18px", lineHeight: 1 }}>{m.icon}</div>
+                              <h3>{m.display_name}</h3>
+                              <p>{m.description}</p>
                             </div>
-                          ) : (
-                            missions.filter(m => m.task_type !== "chat_livre").map(m => (
-                              <div key={m.id} className="card" onClick={() => handleMissionClick(m)}>
-                                <div className="ic" style={{ fontSize: "18px", lineHeight: 1 }}>{m.icon}</div>
-                                <h3>{m.display_name}</h3>
-                                <p>{m.description}</p>
-                              </div>
-                            ))
-                          )}
-                        </div>
+                          ))
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 )}
 
@@ -2626,8 +2954,7 @@ export default function Home() {
                 })}
                 </div>
 
-                {/* Render input area, suggestion chips, and loading indicators only when in Chat Livre or inside an active mission */}
-                {(activeTab === "chat" || selectedMission !== null) && (
+                {selectedMission !== null && (
                   <>
                     {/* Guardrail Pipelines Visualizer (Structured Missions only) */}
                     {loading && selectedMission?.task_type !== "chat_livre" && (
@@ -2868,7 +3195,8 @@ export default function Home() {
                     </form>
                   </>
                 )}
-              </div>
+                </div>
+              )
             ) : (
               /* ================== ADMIN / AUDIT VIEW ================== */
               <div>
