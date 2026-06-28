@@ -102,7 +102,7 @@ export default function InvitePage() {
               letterSpacing: "-0.3px",
             }}
           >
-            ⚖️ JurisAI
+            🛡️ CSRM AI
           </h1>
           <p style={{ fontSize: "13px", color: "#888", margin: 0 }}>
             Ativação de Conta
@@ -124,7 +124,7 @@ export default function InvitePage() {
               Conta ativada com sucesso!
             </h2>
             <p style={{ fontSize: "13px", color: "#666", margin: 0 }}>
-              Redirecionando para o JurisAI...
+              Redirecionando para o CSRM AI...
             </p>
           </div>
         ) : (

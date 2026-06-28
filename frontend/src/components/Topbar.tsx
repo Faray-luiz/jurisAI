@@ -16,7 +16,7 @@ export default function Topbar({ activeTab, selectedProcess, onClearChat }: Topb
     <header className="topbar">
       {/* Breadcrumbs */}
       <div className="breadcrumb">
-        <span style={{ color: "var(--ink-faint)" }}>JurisAI Gateway</span>
+        <span style={{ color: "var(--ink-faint)" }}>CSRM AI</span>
         <span>/</span>
         <span style={{ fontWeight: 500, color: "var(--ink)" }}>
           {activeTab === "chat" 

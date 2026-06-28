@@ -1,15 +1,14 @@
-# Lista de Tarefas: Remodelação de Design - CSRM Advocacia
+# Lista de Tarefas: Renomear para CSRM AI e Novo Logotipo
 
-- `[x]` 1. Documentação de Design (`DESIGN.md`)
-  - `[x]` Atualizar paleta de cores (Alabastro, Bronze Escuro, Dourado Champagne) no arquivo DESIGN.md
-  - `[x]` Atualizar fontes tipográficas (Playfair Display, Montserrat) no arquivo DESIGN.md
-- `[x]` 2. Integração com o Stitch
-  - `[x]` Executar ferramenta Stitch para registrar o novo Design System
-- `[x]` 3. Frontend: Atualização de Variáveis e Fontes (`globals.css`)
-  - `[x]` Atualizar importações de fontes no topo do arquivo globals.css
-  - `[x]` Modificar variáveis de cores `:root` para o padrão CSRM
-  - `[x]` Ajustar o font-family global e seletores de texto
-  - `[x]` Atualizar shimmer gradient do carregamento do chat livre
-- `[/]` 4. Testes & Homologação
-  - `[/]` Executar build do frontend
-  - `[ ]` Publicar na branch main
+- `[x]` 1. Logotipo & Estilo (globals.css)
+  - `[x]` Remover estilo antigo logo-seal e criar nova classe .brand-logo
+  - `[x]` Garantir harmonia com o dourado champagne e marrom escuro
+- `[x]` 2. Substituição no Frontend (Componentes e Páginas)
+  - `[x]` Atualizar Sidebar.tsx (inserir logotipo SVG e texto "CSRM AI")
+  - `[x]` Atualizar Topbar.tsx (mudar JurisAI Gateway para CSRM AI)
+  - `[x]` Atualizar layout.tsx (mudar metadata title)
+  - `[x]` Atualizar page.tsx (mensagens do assistente, cards de bem-vindo, referências do chat livre)
+  - `[x]` Atualizar invite/[token]/page.tsx (mudar referências e emoji de balança)
+- `[x]` 3. Validação & Deploy
+  - `[x]` Rodar npm run build no frontend
+  - `[x]` Commitar e push para a branch main

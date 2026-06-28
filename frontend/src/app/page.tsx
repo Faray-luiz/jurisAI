@@ -1790,7 +1790,7 @@ export default function Home() {
                 boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), 0 6px 20px rgba(0,0,0,0.12)"
               }}
             >
-              J
+              C
             </div>
           </div>
 
@@ -1800,12 +1800,12 @@ export default function Home() {
               textAlign: "center", 
               marginBottom: "6px", 
               color: "var(--ink)",
-              fontFamily: "'Fraunces', serif",
+              fontFamily: "'Playfair Display', serif",
               fontSize: "26px",
               fontWeight: 400
             }}
           >
-            JurisAI Gateway
+            CSRM AI
           </h2>
           
           <p 
@@ -2038,7 +2038,7 @@ export default function Home() {
                   <div style={{ marginBottom: "40px", animation: "fade-in 0.5s ease both" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "var(--bordo)", marginBottom: "8px" }}>
                       <Sparkles size={24} />
-                      <span className="text-eyebrow" style={{ fontSize: "13px" }}>Bem-vindo ao JurisAI Gateway</span>
+                      <span className="text-eyebrow" style={{ fontSize: "13px" }}>Bem-vindo ao CSRM AI</span>
                     </div>
                     <h1 className="text-hero" style={{ marginBottom: "16px", color: "var(--ink)" }}>
                       Inteligência de Apoio Jurídico Confiável
@@ -2298,12 +2298,12 @@ export default function Home() {
                       }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
                           <span style={{ fontSize: "16px" }}>💬</span>
-                          <h3 style={{ fontSize: "15px", fontWeight: 700, color: "var(--bordo)", margin: 0, fontFamily: "'Fraunces', serif" }}>
+                          <h3 style={{ fontSize: "15px", fontWeight: 700, color: "var(--bordo)", margin: 0, fontFamily: "'Playfair Display', serif" }}>
                             Consultor Central (Chat Livre)
                           </h3>
                         </div>
                         <p style={{ fontSize: "12.5px", color: "var(--ink-soft)", margin: 0, lineHeight: "1.5" }}>
-                          Este é o seu canal direto de diálogo livre com a JurisAI. Você pode consultar todo o acervo legislativo ativo, analisar múltiplos documentos simultaneamente, planejar teses de defesa e fazer perguntas abertas sobre o caso conectado.
+                          Este é o seu canal direto de diálogo livre com o CSRM AI. Você pode consultar todo o acervo legislativo ativo, analisar múltiplos documentos simultaneamente, planejar teses de defesa e fazer perguntas abertas sobre o caso conectado.
                         </p>
                       </div>
                     ) : (
@@ -2466,11 +2466,11 @@ export default function Home() {
                           }}>
                             {isChatLivre ? (
                               <>
-                                <span style={{ fontSize: "14px" }}>⚖️</span> 
-                                <strong style={{ fontFamily: "'Fraunces', serif", fontSize: "14px", color: "var(--bordo)" }}>JurisAI</strong>
+                                <span style={{ fontSize: "14px" }}>🛡️</span> 
+                                <strong style={{ fontFamily: "'Playfair Display', serif", fontSize: "14px", color: "var(--bordo)" }}>CSRM AI</strong>
                               </>
                             ) : (
-                              msg.role === "user" ? "Advogado" : "JurisAI Gateway"
+                              msg.role === "user" ? "Advogado" : "CSRM AI"
                             )}
                           </span>
                           
@@ -2689,8 +2689,8 @@ export default function Home() {
                         animation: "fade-in 0.3s ease both"
                       }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <span style={{ fontSize: "14px" }}>⚖️</span> 
-                          <strong style={{ fontFamily: "'Fraunces', serif", fontSize: "14.5px", color: "var(--bordo)", fontWeight: 600 }}>JurisAI</strong>
+                          <span style={{ fontSize: "14px" }}>🛡️</span> 
+                          <strong style={{ fontFamily: "'Playfair Display', serif", fontSize: "14.5px", color: "var(--bordo)", fontWeight: 600 }}>CSRM AI</strong>
                           <span style={{ fontSize: "11px", color: "var(--ink-faint)", fontWeight: 500, marginLeft: "4px" }}>
                             formulando resposta jurídica...
                           </span>
@@ -4178,7 +4178,7 @@ export default function Home() {
                     <span style={{ fontSize: "12.5px", color: "var(--ink-soft)", fontWeight: 700 }}>{extractedCase.defendant}</span>
                   </div>
                   <div>
-                    <span style={{ color: "var(--ink-faint)", fontSize: "10px", display: "block", fontWeight: 600 }}>CLIENTE JURISAI</span>
+                    <span style={{ color: "var(--ink-faint)", fontSize: "10px", display: "block", fontWeight: 600 }}>CLIENTE DO CASO</span>
                     <span style={{ fontSize: "12.5px", color: "var(--ink-soft)", fontWeight: 700 }}>{extractedCase.client}</span>
                   </div>
                   <div>

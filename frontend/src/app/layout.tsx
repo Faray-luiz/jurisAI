@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "JurisAI Gateway — Plataforma Unificada de Inteligência Artificial",
+  title: "CSRM AI — Inteligência Artificial Jurídica",
   description: "Camada unificada de IA do escritório com roteamento de modelos, barreira ética, e verificação síncrona de citações normativas.",
 };
 

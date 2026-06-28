@@ -241,35 +241,40 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
   padding: 0 10px;
 }
 
-.logo-seal {
-  width: 38px;
-  height: 38px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, var(--bordo), var(--primary-dark));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.15), 0 4px 12px rgba(0,0,0,0.15);
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-family: 'Playfair Display', serif;
-  font-weight: 600;
-  font-size: 20px;
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  color: var(--bordo);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.3s ease;
+  filter: drop-shadow(0 2px 6px rgba(185, 164, 130, 0.15));
 }
 
-.logo-container:hover .logo-seal {
-  transform: scale(1.08) rotate(5deg);
+.logo-container:hover .logo-icon {
+  transform: scale(1.1) rotate(3deg);
+  filter: drop-shadow(0 4px 12px rgba(185, 164, 130, 0.35));
 }
 
 .logo-text {
   font-family: 'Playfair Display', serif;
-  font-size: 19px;
-  font-weight: 500;
+  font-size: 20px;
+  font-weight: 700;
   color: var(--rail-bright);
   letter-spacing: -0.3px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.logo-text span {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  color: var(--bordo);
+  font-size: 15px;
+  letter-spacing: 0.5px;
 }
 
 .nav-label {
