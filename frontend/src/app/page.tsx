@@ -20,7 +20,7 @@ const OwlAvatar = () => (
     width: "44px",
     height: "44px",
     borderRadius: "50%",
-    background: "#F2EFE9",
+    background: "#F6F5F3",
     border: "1.5px solid #E6DFD5",
     display: "flex",
     alignItems: "center",
@@ -29,29 +29,79 @@ const OwlAvatar = () => (
     boxShadow: "0 2px 6px rgba(51, 42, 36, 0.05)",
     flexShrink: 0
   }}>
-    <svg viewBox="0 0 100 100" style={{ width: "85%", height: "85%" }}>
-      {/* Ears/Horn Feathers */}
-      <path d="M25 22 L42 32 L32 16 Z" fill="#5C524B" />
-      <path d="M75 22 L58 32 L68 16 Z" fill="#5C524B" />
-      {/* Body & Wings */}
-      <circle cx="50" cy="55" r="34" fill="#3D332C" />
-      <path d="M18 55 C18 45 25 35 35 35 C28 45 28 65 35 75 C25 75 18 65 18 55 Z" fill="#5C524B" />
-      <path d="M82 55 C82 45 75 35 65 35 C72 45 72 65 65 75 C75 75 82 65 82 55 Z" fill="#5C524B" />
-      {/* Face plate */}
-      <path d="M50 36 C36 36 30 45 30 55 C30 65 38 74 50 74 C62 74 70 65 70 55 C70 45 64 36 50 36 Z" fill="#FAF9F6" />
-      {/* Eye discs */}
-      <circle cx="41" cy="51" r="10" fill="#E6DFD5" />
-      <circle cx="41" cy="51" r="8" fill="#FCECD6" />
-      <circle cx="41" cy="51" r="4" fill="#332A24" />
+    <svg viewBox="0 0 200 240" style={{ width: "95%", height: "95%" }}>
+      {/* 1. Tail Feathers */}
+      {/* Center Tail Feather */}
+      <path d="M 92,180 L 92,226 C 92,231 108,231 108,226 L 108,180 Z" fill="#3D332C" />
+      <path d="M 92,216 L 92,226 C 92,231 108,231 108,226 L 108,216 Z" fill="#C5A676" />
       
-      <circle cx="59" cy="51" r="10" fill="#E6DFD5" />
-      <circle cx="59" cy="51" r="8" fill="#FCECD6" />
-      <circle cx="59" cy="51" r="4" fill="#332A24" />
-      {/* Beak */}
-      <polygon points="50,53 46,61 54,61" fill="#8C611B" />
+      {/* Left Tail Feather */}
+      <path d="M 78,180 L 78,218 C 78,223 92,223 92,218 L 92,180 Z" fill="#3D332C" />
+      <path d="M 78,208 L 78,218 C 78,223 92,223 92,218 L 92,208 Z" fill="#C5A676" />
+      
+      {/* Right Tail Feather */}
+      <path d="M 108,180 L 108,218 C 108,223 122,223 122,218 L 122,180 Z" fill="#3D332C" />
+      <path d="M 108,208 L 108,218 C 108,223 122,223 122,218 L 122,208 Z" fill="#C5A676" />
+
+      {/* 2. Main Body & Head */}
+      <path d="M 75,20 C 50,20 38,32 38,62 C 38,82 28,102 28,132 C 28,180 58,198 100,198 C 142,198 172,180 172,132 C 172,102 162,82 162,62 C 162,32 150,20 125,20 Z" fill="#4A3B32" />
+
+      {/* 3. Face Mask (Beige Area) */}
+      <path d="M 100,86 C 72,86 48,74 48,54 C 48,36 70,30 100,43 C 130,30 152,36 152,54 C 152,74 128,86 100,86 Z" fill="#CABEB2" />
+
+      {/* 4. Eyes */}
+      {/* Left Eye */}
+      <circle cx="70" cy="56" r="21" fill="#FFFFFF" />
+      <circle cx="70" cy="56" r="14" fill="#231B15" />
+      <circle cx="75" cy="51" r="3.5" fill="#FFFFFF" />
+
+      {/* Right Eye */}
+      <circle cx="130" cy="56" r="21" fill="#FFFFFF" />
+      <circle cx="130" cy="56" r="14" fill="#231B15" />
+      <circle cx="135" cy="51" r="3.5" fill="#FFFFFF" />
+
+      {/* 5. Eyebrows (Serious/Focused Bar) */}
+      <path d="M 45,39 Q 100,46 155,39 L 155,34 Q 100,41 45,34 Z" fill="#231B15" />
+
+      {/* 6. Beak */}
+      <polygon points="93,56 107,56 100,73" fill="#C5A676" />
+
+      {/* 7. White Belly */}
+      <ellipse cx="100" cy="138" rx="50" ry="54" fill="#FFFFFF" />
+
+      {/* 8. Belly Chevrons */}
+      <path d="M 88,112 L 100,124 L 112,112" stroke="#CABEB2" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      <path d="M 88,132 L 100,144 L 112,132" stroke="#CABEB2" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+      {/* 9. Feather Tufts above claws */}
+      <path d="M 64,185 L 60,196 L 68,194 L 74,188 L 80,196 L 86,194 L 86,182 Z" fill="#4A3B32" />
+      <path d="M 136,185 L 140,196 L 132,194 L 126,188 L 120,196 L 114,194 L 114,182 Z" fill="#4A3B32" />
+
+      {/* 10. Legs (Gold Base) */}
+      <path d="M 68,188 L 68,206" stroke="#C5A676" stroke-width="7" stroke-linecap="round" fill="none" />
+      <path d="M 76,188 L 76,208" stroke="#C5A676" stroke-width="7" stroke-linecap="round" fill="none" />
+      <path d="M 84,188 L 84,206" stroke="#C5A676" stroke-width="7" stroke-linecap="round" fill="none" />
+
+      <path d="M 116,188 L 116,206" stroke="#C5A676" stroke-width="7" stroke-linecap="round" fill="none" />
+      <path d="M 124,188 L 124,208" stroke="#C5A676" stroke-width="7" stroke-linecap="round" fill="none" />
+      <path d="M 132,188 L 132,206" stroke="#C5A676" stroke-width="7" stroke-linecap="round" fill="none" />
+
+      {/* 11. Branch */}
+      <path d="M 20,208 C 60,205 140,205 180,208" stroke="#997E68" stroke-width="12" stroke-linecap="round" fill="none" />
+      <path d="M 150,205 C 165,195 175,185 180,175" stroke="#997E68" stroke-width="8" stroke-linecap="round" fill="none" />
+
+      {/* 12. Claws Wrapping over Branch */}
+      <circle cx="68" cy="206" r="3.5" fill="#231B15" />
+      <circle cx="76" cy="208" r="3.5" fill="#231B15" />
+      <circle cx="84" cy="206" r="3.5" fill="#231B15" />
+
+      <circle cx="116" cy="206" r="3.5" fill="#231B15" />
+      <circle cx="124" cy="208" r="3.5" fill="#231B15" />
+      <circle cx="132" cy="206" r="3.5" fill="#231B15" />
     </svg>
   </div>
 );
+
 
 
 interface Message {

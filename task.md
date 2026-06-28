@@ -12,6 +12,6 @@
   - `[x]` Inserir disclaimer e input com botão de anexo e botão de envio dourado champagne dentro do card
 - `[x]` 3. Frontend: Ajuste de Layout da Central de Missões
   - `[x]` Condicionar a caixa de input global inferior para não aparecer na aba "chat"
-- `[/]` 4. Validação & Publicação
+- `[x]` 4. Validação & Publicação
   - `[x]` Executar npm run build
-  - `[ ]` Commitar e push para a branch main
+  - `[x]` Commitar e push para a branch main
