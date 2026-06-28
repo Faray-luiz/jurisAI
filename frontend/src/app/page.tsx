@@ -177,6 +177,8 @@ export default function Home() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const isChatLivre = !selectedMission || selectedMission.task_type === "chat_livre";
+
   // Fetch initial configuration & active user profile
   useEffect(() => {
     const storedEmail = localStorage.getItem("auth_email");
@@ -2460,43 +2462,68 @@ export default function Home() {
                 {/* Message Log */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px", marginBottom: "30px" }}>
                   {messages.map((msg, index) => {
-                    const isChatLivre = !selectedMission || selectedMission.task_type === "chat_livre";
-                    
                     return (
                       <div 
                         key={index} 
                         style={{
                           background: isChatLivre
-                            ? msg.role === "user" ? "rgba(122, 46, 46, 0.05)" : "var(--surface)"
+                            ? msg.role === "user" ? "rgba(122, 46, 46, 0.05)" : "transparent"
                             : msg.role === "user" ? "var(--paper-2)" : "var(--surface)",
                           border: isChatLivre
-                            ? msg.role === "user" ? "1px solid rgba(122, 46, 46, 0.15)" : "1px solid var(--line)"
+                            ? msg.role === "user" ? "1px solid rgba(122, 46, 46, 0.12)" : "none"
                             : "1px solid var(--line)",
                           borderRadius: isChatLivre
-                            ? msg.role === "user" ? "16px 16px 2px 16px" : "16px 16px 16px 2px"
+                            ? msg.role === "user" ? "20px 20px 4px 20px" : "0px"
                             : "14px",
-                          padding: isChatLivre ? "16px 20px" : "24px",
+                          padding: isChatLivre 
+                            ? msg.role === "user" ? "12px 18px" : "16px 0"
+                            : "24px",
                           alignSelf: isChatLivre
                             ? msg.role === "user" ? "flex-end" : "flex-start"
                             : "stretch",
-                          maxWidth: isChatLivre ? "80%" : "100%",
-                          boxShadow: msg.role === "assistant" && !isChatLivre ? "var(--shadow)" : "var(--shadow-sm)",
+                          maxWidth: isChatLivre 
+                            ? msg.role === "user" ? "80%" : "100%"
+                            : "100%",
+                          boxShadow: !isChatLivre && msg.role === "assistant" ? "var(--shadow)" : "none",
                           position: "relative",
-                          animation: "fade-in 0.3s ease both"
+                          animation: "fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both"
                         }}
                       >
                       {/* Badge indicando ator */}
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", borderBottom: "1px solid var(--paper-2)", paddingBottom: "8px" }}>
-                        <span className="text-eyebrow" style={{ color: isChatLivre && msg.role === "user" ? "var(--bordo)" : "inherit", fontWeight: isChatLivre ? 700 : "inherit" }}>
-                          {msg.role === "user" ? "Advogado" : "JurisAI Gateway"}
-                        </span>
-                        
-                        {msg.role === "assistant" && msg.model && (
-                          <span style={{ fontSize: "10.5px", color: "var(--ink-faint)", fontWeight: 500, display: "flex", alignItems: "center", gap: "4px" }}>
-                            <Cpu size={11} /> {msg.model} | Custo: ${msg.cost?.toFixed(4)}
+                      {(!isChatLivre || msg.role === "assistant") && (
+                        <div style={{ 
+                          display: "flex", 
+                          justifyContent: "space-between", 
+                          marginBottom: "12px", 
+                          borderBottom: isChatLivre ? "none" : "1px solid var(--paper-2)", 
+                          paddingBottom: isChatLivre ? "0" : "8px" 
+                        }}>
+                          <span className="text-eyebrow" style={{ 
+                            color: "var(--bordo)", 
+                            fontWeight: 700, 
+                            display: "flex", 
+                            alignItems: "center", 
+                            gap: "6px",
+                            fontSize: "12px",
+                            textTransform: "none"
+                          }}>
+                            {isChatLivre ? (
+                              <>
+                                <span style={{ fontSize: "14px" }}>⚖️</span> 
+                                <strong style={{ fontFamily: "'Fraunces', serif", fontSize: "14px", color: "var(--bordo)" }}>JurisAI</strong>
+                              </>
+                            ) : (
+                              msg.role === "user" ? "Advogado" : "JurisAI Gateway"
+                            )}
                           </span>
-                        )}
-                      </div>
+                          
+                          {msg.role === "assistant" && msg.model && (
+                            <span style={{ fontSize: "10px", color: "var(--ink-faint)", fontWeight: 500, display: "flex", alignItems: "center", gap: "4px" }}>
+                              <Cpu size={10} /> {msg.model} {msg.cost && `| $${msg.cost.toFixed(4)}`}
+                            </span>
+                          )}
+                        </div>
+                      )}
 
                       {/* Content */}
                       <div 
@@ -2513,16 +2540,16 @@ export default function Home() {
                       {msg.role === "assistant" && msg.web_results && msg.web_results.length > 0 && (
                         <div style={{
                           marginTop: "16px",
-                          padding: "12px 16px",
-                          background: "rgba(100, 100, 100, 0.02)",
-                          border: "1px solid var(--line)",
+                          padding: "10px 14px",
+                          background: "rgba(122, 46, 46, 0.02)",
+                          border: "1px solid rgba(122, 46, 46, 0.08)",
                           borderRadius: "10px",
-                          fontSize: "12.5px"
+                          fontSize: "12px"
                         }}>
                           <span style={{ fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: "8px" }}>
                             🌐 Fontes Oficiais Consultadas na Internet (Grounding Global):
                           </span>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                             {msg.web_results.map((res: any, idx: number) => (
                               <a 
                                 key={idx}
@@ -2563,7 +2590,19 @@ export default function Home() {
 
                       {/* Action Buttons for Assistant Messages */}
                       {msg.role === "assistant" && !msg.error && (
-                        <div style={{ display: "flex", gap: "12px", marginTop: "16px", paddingTop: "12px", borderTop: "1px dashed var(--line)", flexWrap: "wrap" }}>
+                        <div style={{ 
+                          display: "flex", 
+                          gap: "8px", 
+                          marginTop: "16px", 
+                          paddingTop: "12px", 
+                          borderTop: isChatLivre ? "none" : "1px dashed var(--line)", 
+                          flexWrap: "wrap",
+                          opacity: isChatLivre ? 0.6 : 1,
+                          transition: "opacity 0.2s ease"
+                        }}
+                        onMouseEnter={(e) => isChatLivre && (e.currentTarget.style.opacity = "1")}
+                        onMouseLeave={(e) => isChatLivre && (e.currentTarget.style.opacity = "0.6")}
+                        >
                           <button
                             type="button"
                             className="btn ghost"
@@ -2573,10 +2612,10 @@ export default function Home() {
                                 : "Minuta_JurisAI";
                               exportToWord(msg.content, `${title}.doc`);
                             }}
-                            style={{ padding: "6px 12px", fontSize: "11.5px", display: "flex", alignItems: "center", gap: "6px" }}
+                            style={{ padding: "4px 10px", fontSize: "11px", display: "flex", alignItems: "center", gap: "6px" }}
                             title="Exportar para formato Word (.doc)"
                           >
-                            <FileEdit size={13} /> Exportar para Word
+                            <FileEdit size={12} /> Word
                           </button>
 
                           <button
@@ -2588,30 +2627,40 @@ export default function Home() {
                                 : "Minuta_JurisAI";
                               exportToMarkdown(msg.content, `${title}.md`);
                             }}
-                            style={{ padding: "6px 12px", fontSize: "11.5px", display: "flex", alignItems: "center", gap: "6px" }}
+                            style={{ padding: "4px 10px", fontSize: "11px", display: "flex", alignItems: "center", gap: "6px" }}
                             title="Exportar em formato Markdown (.md)"
                           >
-                            <Download size={13} /> Exportar Markdown
+                            <Download size={12} /> Markdown
                           </button>
 
                           <button
                             type="button"
                             className="btn ghost"
                             onClick={() => copyToClipboard(msg.content)}
-                            style={{ padding: "6px 12px", fontSize: "11.5px", display: "flex", alignItems: "center", gap: "6px" }}
+                            style={{ padding: "4px 10px", fontSize: "11px", display: "flex", alignItems: "center", gap: "6px" }}
                             title="Copiar texto para a área de transferência"
                           >
-                            <Copy size={13} /> Copiar
+                            <Copy size={12} /> Copiar
                           </button>
 
                           <button
                             type="button"
-                            className="btn"
+                            className="btn ghost"
                             onClick={() => handleAdjustPrompt(index)}
-                            style={{ padding: "6px 12px", fontSize: "11.5px", display: "flex", alignItems: "center", gap: "6px", marginLeft: "auto", background: "var(--paper-2)", border: "1px solid var(--line)", color: "var(--ink-soft)" }}
+                            style={{ 
+                              padding: "4px 10px", 
+                              fontSize: "11px", 
+                              display: "flex", 
+                              alignItems: "center", 
+                              gap: "6px", 
+                              marginLeft: isChatLivre ? "0" : "auto", 
+                              background: "transparent", 
+                              border: "1px solid var(--line)", 
+                              color: "var(--ink-soft)" 
+                            }}
                             title="Refazer a análise ajustando a instrução anterior"
                           >
-                            <RefreshCw size={13} /> Ajustar / Refazer
+                            <RefreshCw size={12} /> Refazer
                           </button>
                         </div>
                       )}
@@ -2668,30 +2717,29 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Sleek, Agile Typing/Spinning Indicator for Chat Livre (Gemini/ChatGPT style) */}
+                {/* Sleek, Gemini-Style Gradient Shimmer Loading for Chat Livre */}
                 {loading && (!selectedMission || selectedMission?.task_type === "chat_livre") && (
                   <div style={{
-                    alignSelf: "flex-start",
-                    background: "var(--surface)",
-                    border: "1px solid var(--line)",
-                    borderRadius: "16px 16px 16px 2px",
-                    padding: "16px 20px",
-                    maxWidth: "80%",
-                    boxShadow: "var(--shadow-sm)",
+                    alignSelf: "stretch",
+                    padding: "16px 0",
+                    marginBottom: "30px",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "8px",
-                    marginBottom: "30px",
+                    gap: "12px",
                     animation: "fade-in 0.3s ease both"
                   }}>
-                    <span className="text-eyebrow" style={{ fontSize: "11px", color: "var(--bordo)", fontWeight: 700 }}>
-                      JurisAI consultando acervo...
-                    </span>
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center", color: "var(--bordo)" }}>
-                      <Loader2 size={15} className="spin" />
-                      <span style={{ fontSize: "12.5px", color: "var(--ink-soft)", fontWeight: 500 }}>
-                        Pesquisando fontes oficiais e construindo resposta jurídica...
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span style={{ fontSize: "14px" }}>⚖️</span> 
+                      <strong style={{ fontFamily: "'Fraunces', serif", fontSize: "14.5px", color: "var(--bordo)", fontWeight: 600 }}>JurisAI</strong>
+                      <span style={{ fontSize: "11px", color: "var(--ink-faint)", fontWeight: 500, marginLeft: "4px" }}>
+                        formulando resposta jurídica...
                       </span>
+                    </div>
+                    {/* Gemini Shimmer Gradient Bars */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
+                      <div className="gemini-shimmer" style={{ height: "10px", borderRadius: "5px", width: "80%" }}></div>
+                      <div className="gemini-shimmer" style={{ height: "10px", borderRadius: "5px", width: "95%" }}></div>
+                      <div className="gemini-shimmer" style={{ height: "10px", borderRadius: "5px", width: "60%" }}></div>
                     </div>
                   </div>
                 )}
@@ -2737,7 +2785,17 @@ export default function Home() {
                 )}
 
                 {/* Input area */}
-                <form onSubmit={handleSendMessage} style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "14px", padding: "16px", boxShadow: "var(--shadow-lg)" }}>
+                <form 
+                  onSubmit={handleSendMessage} 
+                  style={{ 
+                    background: "var(--surface)", 
+                    border: "1px solid var(--line)", 
+                    borderRadius: isChatLivre ? "28px" : "14px", 
+                    padding: isChatLivre ? "10px 18px" : "16px", 
+                    boxShadow: "var(--shadow-lg)",
+                    transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
+                  }}
+                >
                   {attachedFile && (
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--paper-2)", border: "1px solid var(--line)", padding: "10px 14px", borderRadius: "9px", marginBottom: "12px", fontSize: "13px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 600 }}>
@@ -2779,7 +2837,7 @@ export default function Home() {
                       type="button"
                       className="btn ghost"
                       onClick={() => fileInputRef.current?.click()}
-                      style={{ padding: "10px", width: "40px", height: "40px", placeContent: "center", borderRadius: "9px" }}
+                      style={{ padding: "10px", width: "40px", height: "40px", placeContent: "center", borderRadius: isChatLivre ? "20px" : "9px" }}
                       title="Anexar PDF Judicial"
                       disabled={loading || uploadingFile}
                     >
@@ -2802,8 +2860,8 @@ export default function Home() {
                       style={{
                         flex: 1,
                         border: "1px solid var(--line)",
-                        borderRadius: "9px",
-                        padding: "10px 14px",
+                        borderRadius: isChatLivre ? "20px" : "9px",
+                        padding: "10px 16px",
                         fontSize: "14px",
                         fontFamily: "inherit",
                         outline: "none",
@@ -2815,7 +2873,7 @@ export default function Home() {
                     <button
                       type="submit"
                       className="btn"
-                      style={{ padding: "10px", width: "40px", height: "40px", placeContent: "center", borderRadius: "9px" }}
+                      style={{ padding: "10px", width: "40px", height: "40px", placeContent: "center", borderRadius: isChatLivre ? "20px" : "9px" }}
                       disabled={loading || (!inputText.trim() && !attachedFile)}
                     >
                       {loading ? <Loader2 size={17} className="spin" /> : <Send size={17} />}

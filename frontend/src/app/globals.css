@@ -824,3 +824,24 @@ body {
     transform: none;
   }
 }
+
+/* ── Gemini Shimmer Loading Animation ── */
+.gemini-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(122, 46, 46, 0.06) 25%,
+    rgba(212, 175, 55, 0.12) 50%,
+    rgba(122, 46, 46, 0.06) 75%
+  );
+  background-size: 200% 100%;
+  animation: gemini-shimmer-anim 1.6s infinite linear;
+}
+
+@keyframes gemini-shimmer-anim {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
