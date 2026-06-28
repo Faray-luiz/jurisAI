@@ -1,27 +1,27 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
 
 :root {
   /* ── Superfícies ── */
-  --paper: hsl(36, 12%, 96%);      /* fundo principal — papel quente */
-  --paper-2: hsl(36, 12%, 91%);    /* fundo alternativo / hover sutil */
-  --surface: hsl(36, 12%, 99%);    /* cards, inputs, áreas de conteúdo */
-  --line: hsl(36, 10%, 86%);       /* divisores, bordas de cards */
+  --paper: #FAF9F6;      /* fundo principal — Alabastro */
+  --paper-2: #F2EFE9;    /* fundo alternativo — Bege claro */
+  --surface: #FFFFFF;    /* cards, inputs, áreas de conteúdo */
+  --line: #E6DFD5;       /* divisores, bordas de cards */
 
   /* ── Tinta ── */
-  --ink: hsl(0, 0%, 12%);          /* texto principal */
-  --ink-soft: hsl(0, 0%, 35%);     /* texto secundário */
-  --ink-faint: hsl(0, 0%, 55%);    /* labels, placeholders, metadados */
+  --ink: #332A24;        /* texto principal — Bronze escuro */
+  --ink-soft: #5C524B;   /* texto secundário — Bronze médio */
+  --ink-faint: #8A7E75;  /* labels, placeholders, metadados */
 
   /* ── Rail / Sidebar ── */
-  --rail: hsl(350, 45%, 12%);      /* fundo da sidebar - borgonha profundo */
-  --rail-2: hsl(350, 40%, 18%);    /* hover e cards dentro da rail */
-  --rail-line: hsl(350, 35%, 22%);  /* divisores dentro da rail */
-  --rail-text: hsl(350, 15%, 75%);  /* texto padrão na rail */
-  --rail-bright: hsl(350, 100%, 98%);/* texto em destaque na rail */
+  --rail: #2E251F;       /* fundo da sidebar — Bronze profundo */
+  --rail-2: #3D332C;     /* hover e cards dentro da rail */
+  --rail-line: #4E423A;  /* divisores dentro da rail */
+  --rail-text: #C4B9B0;  /* texto padrão na rail */
+  --rail-bright: #FAF9F6;/* texto em destaque na rail */
 
-  /* ── Acento primário — Bordô (lacre) ── */
-  --bordo: hsl(350, 45%, 30%);      /* CTA principal, destaques, borda ativa */
-  --bordo-2: hsl(350, 45%, 38%);    /* hover do bordô */
+  /* ── Acento primário — Dourado Champagne ── */
+  --bordo: #B9A482;      /* CTA principal, destaques, borda ativa */
+  --bordo-2: #A08A68;    /* hover do dourado */
 
   /* ── Status: Verificado (somente citações) ── */
   --verde: hsl(152, 39%, 28%);
@@ -39,11 +39,11 @@
   --review-line: hsl(204, 20%, 84%);
 
   /* ── Destaque decorativo ── */
-  --gold: hsl(37, 39%, 52%);       /* barra de cota, detalhes ornamentais */
+  --gold: #B9A482;       /* champagne gold */
 
   /* ── Sombras ── */
-  --shadow: 0 4px 20px -2px rgba(20,32,43,.04), 0 1px 3px rgba(20,32,43,.02);
-  --shadow-lg: 0 12px 36px -4px rgba(20,32,43,.12);
+  --shadow: 0 4px 20px -2px rgba(51, 42, 36, 0.05), 0 1px 3px rgba(51, 42, 36, 0.02);
+  --shadow-lg: 0 12px 36px -4px rgba(51, 42, 36, 0.1);
 }
 
 /* Reset base */
@@ -57,7 +57,7 @@
 body {
   background: var(--paper);
   color: var(--ink);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Montserrat', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -87,7 +87,7 @@ body {
 
 /* ── Escala Tipográfica ── */
 .text-hero {
-  font-family: 'Fraunces', serif;
+  font-family: 'Playfair Display', serif;
   font-size: clamp(30px, 4.5vw, 44px);
   font-weight: 300;
   line-height: 1.08;
@@ -95,24 +95,24 @@ body {
 }
 
 .text-title {
-  font-family: 'Fraunces', serif;
+  font-family: 'Playfair Display', serif;
   font-size: 29px;
   font-weight: 400;
   line-height: 1.15;
 }
 
 .text-section {
-  font-family: 'Fraunces', serif;
+  font-family: 'Playfair Display', serif;
   font-size: 21px;
   font-weight: 500;
   line-height: 1.2;
 }
 
 .text-doc {
-  font-family: 'Newsreader', serif;
-  font-size: 17.5px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 16px;
   line-height: 1.68;
-  color: #26292E;
+  color: #332A24;
 }
 
 .text-doc blockquote {
@@ -138,14 +138,14 @@ body {
 }
 
 .text-lede {
-  font-family: 'Newsreader', serif;
-  font-size: 18px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 17px;
   line-height: 1.5;
   color: var(--ink-soft);
 }
 
 .text-label {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Montserrat', sans-serif;
   font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -153,19 +153,19 @@ body {
 }
 
 .text-body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Montserrat', sans-serif;
   font-size: 14px;
   line-height: 1.5;
 }
 
 .text-small {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Montserrat', sans-serif;
   font-size: 12.5px;
   color: var(--ink-faint);
 }
 
 .text-eyebrow {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Montserrat', sans-serif;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.16em;
@@ -254,7 +254,7 @@ body {
   display: grid;
   place-items: center;
   color: #fff;
-  font-family: 'Fraunces', serif;
+  font-family: 'Playfair Display', serif;
   font-weight: 600;
   font-size: 20px;
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -265,7 +265,7 @@ body {
 }
 
 .logo-text {
-  font-family: 'Fraunces', serif;
+  font-family: 'Playfair Display', serif;
   font-size: 19px;
   font-weight: 500;
   color: var(--rail-bright);
@@ -392,7 +392,7 @@ body {
 .btn {
   background: var(--bordo);
   color: #fff;
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'Montserrat', sans-serif;
   font-size: 13px;
   font-weight: 600;
   padding: 11px 18px;
@@ -484,7 +484,7 @@ body {
 }
 
 .card h3 {
-  font-family: 'Fraunces', serif;
+  font-family: 'Playfair Display', serif;
   font-weight: 500;
   font-size: 17px;
   color: var(--ink);
@@ -502,7 +502,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'Montserrat', sans-serif;
   font-size: 12.5px;
   font-weight: 500;
   padding: 1px 8px 1px 7px;
@@ -829,9 +829,9 @@ body {
 .gemini-shimmer {
   background: linear-gradient(
     90deg,
-    rgba(122, 46, 46, 0.06) 25%,
-    rgba(212, 175, 55, 0.12) 50%,
-    rgba(122, 46, 46, 0.06) 75%
+    rgba(185, 164, 130, 0.05) 25%,
+    rgba(185, 164, 130, 0.22) 50%,
+    rgba(185, 164, 130, 0.05) 75%
   );
   background-size: 200% 100%;
   animation: gemini-shimmer-anim 1.6s infinite linear;
