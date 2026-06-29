@@ -335,12 +335,8 @@ export default function Home() {
       const procData = await procRes.json();
       setProcesses(procData);
       
-      // Default process selection
-      if (procData.length > 0) {
-        setSelectedProcessId(prev => (prev && prev !== "N/A" ? prev : procData[0].id));
-      } else {
-        setSelectedProcessId("N/A");
-      }
+      // Default process selection - By default, no process is connected
+      setSelectedProcessId("N/A");
 
       // Get all simulated users for switcher
       const allUsersRes = await fetch(`${BACKEND_URL}/api/v1/admin/users`, {
@@ -2151,16 +2147,44 @@ export default function Home() {
                     position: "relative",
                     overflow: "hidden"
                   }}>
-                    {/* Card Header Actions (Clock/History Button) */}
+                    {/* Card Header Actions (Link Case Selector & Clock/History Button) */}
                     <div style={{
                       display: "flex",
-                      justifyContent: "flex-end",
-                      padding: "16px 20px 8px",
-                      position: "absolute",
-                      top: 0,
-                      right: 0,
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "12px 20px",
+                      borderBottom: "1px solid var(--line)",
+                      background: "var(--paper-2)",
                       zIndex: 10
                     }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "12px", color: "var(--ink-soft)", fontWeight: 600 }}>Vincular Caso:</span>
+                        <select
+                          value={selectedProcessId}
+                          onChange={(e) => {
+                            setSelectedProcessId(e.target.value);
+                            setMessages([]); // Clear chat history to start fresh with new case context
+                          }}
+                          style={{
+                            padding: "4px 10px",
+                            fontSize: "12px",
+                            borderRadius: "6px",
+                            border: "1px solid var(--line)",
+                            background: "#fff",
+                            color: "#332A24",
+                            outline: "none",
+                            cursor: "pointer",
+                            fontWeight: 500,
+                            maxWidth: "280px"
+                          }}
+                        >
+                          <option value="N/A">Nenhum caso ativo (Diálogo Livre)</option>
+                          {processes.map(p => (
+                            <option key={p.id} value={p.id}>{p.id} - {p.title}</option>
+                          ))}
+                        </select>
+                      </div>
+
                       <button
                         type="button"
                         onClick={() => setMessages([])}
@@ -2169,11 +2193,17 @@ export default function Home() {
                           border: "none",
                           color: "var(--ink-faint)",
                           cursor: "pointer",
-                          transition: "color 0.2s"
+                          transition: "color 0.2s",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          fontSize: "12px",
+                          fontWeight: 500
                         }}
                         title="Limpar Conversa"
                       >
-                        <RefreshCw size={17} />
+                        <RefreshCw size={14} />
+                        <span>Limpar</span>
                       </button>
                     </div>
 
