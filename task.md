@@ -15,3 +15,8 @@
 - `[x]` 4. Validação & Publicação
   - `[x]` Executar npm run build
   - `[x]` Commitar e push para a branch main
+- `[x]` 5. Vincular Caso Opcional (Menu Dropdown no Chat Livre)
+  - `[x]` Desativar a seleção automática de caso ao carregar a lista de processos
+  - `[x]` Adicionar menu dropdown "Vincular Caso" no topo esquerdo do card de chat
+  - `[x]` Limpar o chat ao alterar o caso vinculado para evitar misturar contextos
+  - `[x]` Testar build e enviar para produção
