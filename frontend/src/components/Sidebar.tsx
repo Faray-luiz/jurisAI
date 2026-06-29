@@ -84,24 +84,81 @@ export default function Sidebar({
     <aside className="rail">
       {/* Brand Logo */}
       <div className="logo-container">
-        <svg 
-          className="logo-icon" 
-          viewBox="0 0 24 24" 
-          fill="none" 
-          stroke="currentColor" 
-          strokeWidth="2.2" 
-          strokeLinecap="round" 
-          strokeLinejoin="round"
-        >
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          <circle cx="12" cy="11" r="1.5" fill="currentColor" />
-          <line x1="12" y1="11" x2="9" y2="8" />
-          <line x1="12" y1="11" x2="15" y2="8" />
-          <line x1="12" y1="11" x2="12" y2="15" />
-          <circle cx="9" cy="8" r="0.8" fill="currentColor" />
-          <circle cx="15" cy="8" r="0.8" fill="currentColor" />
-          <circle cx="12" cy="15" r="0.8" fill="currentColor" />
-        </svg>
+        <div style={{
+          width: "32px",
+          height: "32px",
+          borderRadius: "50%",
+          background: "#F6F5F3",
+          border: "1.2px solid #E6DFD5",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+          boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
+          flexShrink: 0,
+          transition: "transform 0.3s ease, filter 0.3s ease"
+        }} className="logo-icon">
+          <svg viewBox="0 0 200 240" style={{ width: "90%", height: "90%" }}>
+            {/* 1. Tail Feathers */}
+            <path d="M 92,180 L 92,226 C 92,231 108,231 108,226 L 108,180 Z" fill="#3D332C" />
+            <path d="M 92,216 L 92,226 C 92,231 108,231 108,226 L 108,216 Z" fill="#C5A676" />
+            <path d="M 78,180 L 78,218 C 78,223 92,223 92,218 L 92,180 Z" fill="#3D332C" />
+            <path d="M 78,208 L 78,218 C 78,223 92,223 92,218 L 92,208 Z" fill="#C5A676" />
+            <path d="M 108,180 L 108,218 C 108,223 122,223 122,218 L 122,180 Z" fill="#3D332C" />
+            <path d="M 108,208 L 108,218 C 108,223 122,223 122,218 L 122,208 Z" fill="#C5A676" />
+
+            {/* 2. Main Body & Head */}
+            <path d="M 75,20 C 50,20 38,32 38,62 C 38,82 28,102 28,132 C 28,180 58,198 100,198 C 142,198 172,180 172,132 C 172,102 162,82 162,62 C 162,32 150,20 125,20 Z" fill="#4A3B32" />
+
+            {/* 3. Face Mask */}
+            <path d="M 100,86 C 72,86 48,74 48,54 C 48,36 70,30 100,43 C 130,30 152,36 152,54 C 152,74 128,86 100,86 Z" fill="#CABEB2" />
+
+            {/* 4. Eyes */}
+            <circle cx="70" cy="56" r="21" fill="#FFFFFF" />
+            <circle cx="70" cy="56" r="14" fill="#231B15" />
+            <circle cx="75" cy="51" r="3.5" fill="#FFFFFF" />
+            <circle cx="130" cy="56" r="21" fill="#FFFFFF" />
+            <circle cx="130" cy="56" r="14" fill="#231B15" />
+            <circle cx="135" cy="51" r="3.5" fill="#FFFFFF" />
+
+            {/* 5. Eyebrows */}
+            <path d="M 45,39 Q 100,46 155,39 L 155,34 Q 100,41 45,34 Z" fill="#231B15" />
+
+            {/* 6. Beak */}
+            <polygon points="93,56 107,56 100,73" fill="#C5A676" />
+
+            {/* 7. White Belly */}
+            <ellipse cx="100" cy="138" rx="50" ry="54" fill="#FFFFFF" />
+
+            {/* 8. Belly Chevrons */}
+            <path d="M 88,112 L 100,124 L 112,112" stroke="#CABEB2" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+            <path d="M 88,132 L 100,144 L 112,132" stroke="#CABEB2" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+            {/* 9. Feather Tufts */}
+            <path d="M 64,185 L 60,196 L 68,194 L 74,188 L 80,196 L 86,194 L 86,182 Z" fill="#4A3B32" />
+            <path d="M 136,185 L 140,196 L 132,194 L 126,188 L 120,196 L 114,194 L 114,182 Z" fill="#4A3B32" />
+
+            {/* 10. Legs */}
+            <path d="M 68,188 L 68,206" stroke="#C5A676" stroke-width="7" stroke-linecap="round" fill="none" />
+            <path d="M 76,188 L 76,208" stroke="#C5A676" stroke-width="7" stroke-linecap="round" fill="none" />
+            <path d="M 84,188 L 84,206" stroke="#C5A676" stroke-width="7" stroke-linecap="round" fill="none" />
+            <path d="M 116,188 L 116,206" stroke="#C5A676" stroke-width="7" stroke-linecap="round" fill="none" />
+            <path d="M 124,188 L 124,208" stroke="#C5A676" stroke-width="7" stroke-linecap="round" fill="none" />
+            <path d="M 132,188 L 132,206" stroke="#C5A676" stroke-width="7" stroke-linecap="round" fill="none" />
+
+            {/* 11. Branch */}
+            <path d="M 20,208 C 60,205 140,205 180,208" stroke="#997E68" stroke-width="12" stroke-linecap="round" fill="none" />
+            <path d="M 150,205 C 165,195 175,185 180,175" stroke="#997E68" stroke-width="8" stroke-linecap="round" fill="none" />
+
+            {/* 12. Claws */}
+            <circle cx="68" cy="206" r="3.5" fill="#231B15" />
+            <circle cx="76" cy="208" r="3.5" fill="#231B15" />
+            <circle cx="84" cy="206" r="3.5" fill="#231B15" />
+            <circle cx="116" cy="206" r="3.5" fill="#231B15" />
+            <circle cx="124" cy="208" r="3.5" fill="#231B15" />
+            <circle cx="132" cy="206" r="3.5" fill="#231B15" />
+          </svg>
+        </div>
         <span className="logo-text">CSRM <span>AI</span></span>
       </div>
 
