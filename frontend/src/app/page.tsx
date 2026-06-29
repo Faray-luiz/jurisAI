@@ -3423,9 +3423,15 @@ export default function Home() {
                           background: "#fff"
                         }}
                       >
-                        {agentConfigs.map(c => (
+                        {agentConfigs.filter(c => c.task_type !== "default").map(c => (
                           <option key={c.task_type} value={c.task_type}>
-                            {c.task_type === "analise_peticao" ? "Análise de Petição Inicial" : c.task_type === "rascunho_recurso" ? "Rascunho de Recurso" : "Uso Geral (Default)"}
+                            {c.task_type === "analise_peticao" 
+                              ? "Análise de Petição Inicial" 
+                              : c.task_type === "rascunho_recurso" 
+                              ? "Rascunho de Recurso" 
+                              : c.task_type === "chat_livre"
+                              ? "Chat Global (Minerva)"
+                              : c.task_type}
                           </option>
                         ))}
                       </select>

@@ -59,6 +59,58 @@ MOCK_RESPONSES = {
     )
 }
 
+def get_mock_response(task_type: str, prompt: str, system_prompt: str) -> str:
+    import re
+    # Remove emojis using a regex that targets unicode ranges for symbols, emojis, and pictographs
+    pattern = re.compile(
+        '['
+        '\\U0001f600-\\U0001f64f'  # emoticons
+        '\\U0001f300-\\U0001f5ff'  # symbols & pictographs
+        '\\U0001f680-\\U0001f6ff'  # transport & map symbols
+        '\\U0001f1e0-\\U0001f1ff'  # flags
+        '\\U00002700-\\U000027bf'  # dingbats
+        '\\U00002600-\\U000026ff'  # misc symbols
+        '\\uFE0F'                 # variation selector
+        '\\u200d'                 # zero width joiner
+        '\\u26A0'                 # warning sign (⚠️)
+        '\\uD83C[\\uDF00-\\uDFFF]'  # surrogate pairs
+        '\\uD83D[\\uDC00-\\uDFFF]'
+        '\\uD83E[\\uDD00-\\uDFFF]'
+        ']+', flags=re.UNICODE
+    )
+    clean_prompt = pattern.sub('', system_prompt)
+    for sym in ["⚠️", "🔒", "🔓", "⚖️", "🏛️", "💼", "🤖", "📝", "💡", "🔍", "⚡", "✨", "📌", "💬", "❌", "✔️", "✅"]:
+        clean_prompt = clean_prompt.replace(sym, "")
+    clean_prompt = re.sub(r' +', ' ', clean_prompt).strip()
+
+    if task_type == "analise_peticao":
+        return (
+            f"Diretrizes do Agente (Fonte da Verdade):\n"
+            f"> *\"{clean_prompt}\"*\n\n"
+            f"Análise da Petição Inicial concluída. Constatou-se que a petição preenche os requisitos formais de admissibilidade "
+            f"e fundamenta o pleito no [Art. 186 do Código Civil] (responsabilidade subjetiva) e no [Art. 927 do Código Civil] (obrigação de indenizar). "
+            f"Contudo, a inicial carece de lastro probatório robusto quanto ao nexo de causalidade (conforme o ônus do [Art. 373 do CPC/2015]).\n\n"
+            f"*(Esta é uma resposta simulada baseada na configuração salva na plataforma)*"
+        )
+    elif task_type == "rascunho_recurso":
+        return (
+            f"Diretrizes do Agente (Fonte da Verdade):\n"
+            f"> *\"{clean_prompt}\"*\n\n"
+            f"Rascunho de Recurso elaborado. Foi estruturado o pleito de reforma da decisão com base nos princípios do contraditório e da ampla defesa. "
+            f"Recomenda-se detalhar as razões recursais de fato e de direito para afastar a intempestividade ou o não cabimento.\n\n"
+            f"*(Esta é uma resposta simulada baseada na configuração salva na plataforma)*"
+        )
+    else:
+        # Default or chat_livre
+        return (
+            f"Sob a orientação do meu prompt de sistema configurado:\n\n"
+            f"> *\"{clean_prompt}\"*\n\n"
+            f"Analisei a sua mensagem: \"{prompt}\". Como agente da **CSRM AI**, estou operando sob as diretrizes definidas "
+            f"pelo administrador da plataforma. Para análises processuais, certifique-se de que os documentos necessários "
+            f"estão vinculados.\n\n"
+            f"*(Esta é uma resposta simulada baseada na configuração salva na plataforma)*"
+        )
+
 def route_task(prompt: str, task_type: str = "default") -> Tuple[str, str]:
     """
     Routes the task to the appropriate model and returns (model_name, provider)
@@ -287,7 +339,7 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
        (provider == "anthropic" and is_anthropic_mock) or \
        (provider == "google" and is_gemini_mock):
         time.sleep(1.5)
-        response_text = MOCK_RESPONSES.get(task_type, MOCK_RESPONSES["default"])
+        response_text = get_mock_response(task_type, prompt, system_prompt)
         output_tokens = len(response_text.split()) * 2
         _log_to_langsmith(provider, model, prompt, system_prompt, response_text, input_tokens, output_tokens)
         return response_text, model, input_tokens, output_tokens
@@ -395,7 +447,7 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
         fallback_model = "gpt-4o"
         print(f"[Resilience] Exception occurred during call: {e}. Executing fallback to {fallback_model}.")
         if is_openai_mock:
-            response_text = f"Fallback ativado devido a erro no provedor original ({e}). " + MOCK_RESPONSES.get(task_type, MOCK_RESPONSES["default"])
+            response_text = f"Fallback ativado devido a erro no provedor original ({e}). " + get_mock_response(task_type, prompt, system_prompt)
             _log_to_langsmith("openai", fallback_model, prompt, system_prompt, response_text, input_tokens, len(response_text.split()) * 2)
             return response_text, fallback_model, input_tokens, len(response_text.split()) * 2
         else:
@@ -426,7 +478,7 @@ def generate_response(prompt: str, task_type: str = "default", model_override: s
                 return response_text, fallback_model, input_toks, output_toks
             except Exception as fb_err:
                 print(f"[Resilience] Fallback failed: {fb_err}. Returning simulation fallback.")
-                response_text = f"Fallback emergencial ativado devido a erro duplo ({e} / {fb_err}). " + MOCK_RESPONSES.get(task_type, MOCK_RESPONSES["default"])
+                response_text = f"Fallback emergencial ativado devido a erro duplo ({e} / {fb_err}). " + get_mock_response(task_type, prompt, system_prompt)
                 _log_to_langsmith("openai", fallback_model, prompt, system_prompt, response_text, input_tokens, len(response_text.split()) * 2)
                 return response_text, fallback_model, input_tokens, len(response_text.split()) * 2
 
