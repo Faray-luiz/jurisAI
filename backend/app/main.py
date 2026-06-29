@@ -16,6 +16,33 @@ from backend.app.services.grounding import verify_citations
 from backend.app.services.guardrails import validate_input_prompt, redact_pii, sanitize_document_content
 from backend.app.services.quota import estimate_request_cost, verify_and_update_quota, commit_quota_usage
 from backend.app.core.crypto import encrypt_text, decrypt_text
+import re
+
+def clean_emojis(text: str) -> str:
+    # Remove emojis using a regex that targets unicode ranges for symbols, emojis, and pictographs
+    pattern = re.compile(
+        '['
+        '\\U0001f600-\\U0001f64f'  # emoticons
+        '\\U0001f300-\\U0001f5ff'  # symbols & pictographs
+        '\\U0001f680-\\U0001f6ff'  # transport & map symbols
+        '\\U0001f1e0-\\U0001f1ff'  # flags
+        '\\U00002700-\\U000027bf'  # dingbats
+        '\\U00002600-\\U000026ff'  # misc symbols
+        '\\uFE0F'                 # variation selector
+        '\\u200d'                 # zero width joiner
+        '\\u26A0'                 # warning sign (⚠️)
+        '\\uD83C[\\uDF00-\\uDFFF]'  # surrogate pairs
+        '\\uD83D[\\uDC00-\\uDFFF]'
+        '\\uD83E[\\uDD00-\\uDFFF]'
+        ']+', flags=re.UNICODE
+    )
+    cleaned = pattern.sub('', text)
+    # Also remove any specific remaining warning, envelope or lock symbols
+    extra_symbols = ["⚠️", "🔒", "🔓", "⚖️", "🏛️", "💼", "🤖", "📝", "💡", "🔍", "⚡", "✨", "📌", "💬", "❌", "✔️", "✅"]
+    for sym in extra_symbols:
+        cleaned = cleaned.replace(sym, "")
+    cleaned = re.sub(r' +', ' ', cleaned)
+    return cleaned.strip()
 
 app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION)
 
@@ -450,6 +477,7 @@ def chat_interaction(payload: ChatPayload, user: dict = Depends(get_current_user
     raw_response, model_used, input_tokens, output_tokens = generate_response(
         final_prompt, payload.task_type, payload.model_override, history=history_list
     )
+    raw_response = clean_emojis(raw_response)
     
     # 6. Sychronous Grounding check
     citations = verify_citations(raw_response, web_results=web_results if payload.web_search else None)

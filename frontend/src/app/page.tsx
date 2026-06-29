@@ -2123,8 +2123,7 @@ export default function Home() {
                 <div style={{ display: "flex", flexDirection: "column", gap: "24px", height: "100%", minHeight: "calc(100vh - 120px)" }}>
                   {/* Title & Sparkles Header */}
                   <div style={{ padding: "8px 8px 0px", animation: "fade-in 0.5s ease both" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--bordo)", marginBottom: "8px" }}>
-                      <Sparkles size={16} style={{ color: "var(--bordo)" }} />
+                    <div style={{ color: "var(--bordo)", marginBottom: "8px" }}>
                       <span className="text-eyebrow" style={{ fontSize: "11.5px", letterSpacing: "0.12em", fontWeight: 600 }}>BEM-VINDO AO CSRM AI</span>
                     </div>
                     <h1 className="text-hero" style={{ fontSize: "30px", fontWeight: 400, color: "var(--ink)", marginBottom: "8px", fontFamily: "'Playfair Display', serif" }}>
@@ -2288,11 +2287,7 @@ export default function Home() {
                                   }
                                 </div>
                               </div>
-                              {msg.role === "assistant" && msg.model && (
-                                <span style={{ fontSize: "10px", color: "var(--ink-faint)", marginLeft: "4px", marginTop: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
-                                  <Cpu size={10} /> {msg.model} {msg.cost && `| $${msg.cost.toFixed(4)}`}
-                                </span>
-                              )}
+                              {/* Technical metadata hidden for clean dialogue layout */}
                             </div>
                           </div>
                         ))

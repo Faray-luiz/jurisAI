@@ -1,22 +1,13 @@
-# Lista de Tarefas: Redesenho do Chat Livre (Minerva CSRM AI)
+# Lista de Tarefas: Eliminação de Ícones e Diálogos Limpos (Minerva CSRM AI)
 
-- `[x]` 1. Componente de Avatar (OwlAvatar)
-  - `[x]` Inserir a função OwlAvatar com SVG vetorial personalizado em page.tsx
-- `[x]` 2. Frontend: Estrutura do Chat Livre (page.tsx)
-  - `[x]` Isolar a aba de chat livre (`activeTab === "chat"`) da central de missões
-  - `[x]` Exibir o cabeçalho de boas-vindas da CSRM AI no topo
-  - `[x]` Renderizar o card flutuante de chat com bordas arredondadas e sombra
-  - `[x]` Adicionar botão de histórico no topo direito do card
-  - `[x]` Implementar mensagem de boas-vindas dinâmica ("Oi [Nome], como posso te ajudar?") com o avatar da Minerva
-  - `[x]` Renderizar a lista de diálogos com avatares (Minerva para assistente, iniciais para usuário)
-  - `[x]` Inserir disclaimer e input com botão de anexo e botão de envio dourado champagne dentro do card
-- `[x]` 3. Frontend: Ajuste de Layout da Central de Missões
-  - `[x]` Condicionar a caixa de input global inferior para não aparecer na aba "chat"
-- `[x]` 4. Validação & Publicação
-  - `[x]` Executar npm run build
-  - `[x]` Commitar e push para a branch main
-- `[x]` 5. Vincular Caso Opcional (Menu Dropdown no Chat Livre)
-  - `[x]` Desativar a seleção automática de caso ao carregar a lista de processos
-  - `[x]` Adicionar menu dropdown "Vincular Caso" no topo esquerdo do card de chat
-  - `[x]` Limpar o chat ao alterar o caso vinculado para evitar misturar contextos
-  - `[x]` Testar build e enviar para produção
+- `[/]` 1. Backend: Atualizar System Prompt no DB
+  - `[ ]` Atualizar o script de seed para o novo prompt de chat_livre sem emojis
+  - `[ ]` Atualizar a linha correspondente no banco de dados SQLite de produção
+- `[ ]` 2. Backend: Higienização Dinâmica de Texto (Remover Emojis)
+  - `[ ]` Criar função no backend para filtrar e remover símbolos unicode/emojis das respostas do LLM
+- `[ ]` 3. Frontend: Limpeza da UI (page.tsx)
+  - `[ ]` Remover ícone Sparkles do cabeçalho superior do Chat Livre
+  - `[ ]` Ocultar metadados técnicos (ícone de CPU, nome de modelo e custo) abaixo dos balões da Minerva
+- `[ ]` 4. Validação & Publicação
+  - `[ ]` Executar npm run build
+  - `[ ]` Commitar e push para a branch main
