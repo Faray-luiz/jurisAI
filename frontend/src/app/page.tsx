@@ -4663,7 +4663,7 @@ function GovernanceDashboard() {
       try {
         const res = await fetch("/api/v1/admin/governance/stats", {
           headers: {
-            "Authorization": `Bearer ${localStorage.getItem("token") || ""}`
+            "Authorization": `Bearer ${localStorage.getItem("auth_email") || ""}`
           }
         });
         if (!res.ok) {
