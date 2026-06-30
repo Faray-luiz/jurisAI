@@ -589,7 +589,7 @@ def get_governance_stats(user: dict = Depends(get_current_user)):
         proc_map = {p.id: p for p in processes}
         
         # 1. Total Metrics
-        total_cost = sum(a.cost_usd for a in audits)
+        total_cost = sum(a.cost_usd or 0.0 for a in audits)
         total_requests = len(audits)
         ethical_wall_blocks = sum(1 for a in audits if a.status == "Bloqueado")
         
@@ -621,7 +621,7 @@ def get_governance_stats(user: dict = Depends(get_current_user)):
                 proc_info = proc_map.get(pid)
                 process_stats[pid] = {
                     "process_id": pid,
-                    "number": proc_info.number if proc_info else pid,
+                    "number": proc_info.process_number if proc_info else pid,
                     "client": proc_info.client if proc_info else "Cliente Externo",
                     "cumulative_cost": 0.0,
                     "actions": set(),
@@ -629,7 +629,7 @@ def get_governance_stats(user: dict = Depends(get_current_user)):
                 }
             
             p_stat = process_stats[pid]
-            p_stat["cumulative_cost"] += a.cost_usd
+            p_stat["cumulative_cost"] += a.cost_usd or 0.0
             if a.action:
                 p_stat["actions"].add(a.action)
             if a.grounding_status == "Não Verificado":
@@ -654,7 +654,7 @@ def get_governance_stats(user: dict = Depends(get_current_user)):
                 "action": a.action,
                 "process_id": a.process_id,
                 "model": a.model,
-                "cost_usd": a.cost_usd,
+                "cost_usd": a.cost_usd or 0.0,
                 "status": a.status,
                 "grounding_status": a.grounding_status
             })
