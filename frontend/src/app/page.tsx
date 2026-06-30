@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { 
-  Send, ShieldAlert, DollarSign, Loader2, Sparkles, 
+  Send, ShieldAlert, DollarSign, Loader2, Sparkles, Shield, 
   Upload, FileText, CheckCircle, AlertTriangle, ShieldCheck, 
   Search, Edit3, HelpCircle, Copy, Cpu, ChevronDown, ChevronRight, Download,
   RefreshCw, FileEdit, History, Paperclip
@@ -158,7 +158,7 @@ export default function Home() {
   const [quotaEditLimit, setQuotaEditLimit] = useState<number>(50);
   const [quotaUpdating, setQuotaUpdating] = useState(false);
 
-  const [adminSubTab, setAdminSubTab] = useState<"logs" | "modelos" | "rag" | "custos" | "usuarios" | "missoes">("logs");
+  const [adminSubTab, setAdminSubTab] = useState<"logs" | "modelos" | "rag" | "custos" | "usuarios" | "missoes" | "governanca">("logs");
   
   // Missions States
   const [missions, setMissions] = useState<any[]>([]);
@@ -3283,6 +3283,7 @@ export default function Home() {
                   {adminSubTab === "custos" && "Custos & Orçamento"}
                   {adminSubTab === "usuarios" && "Usuários & Acesso"}
                   {adminSubTab === "missoes" && "Gestão de Missões"}
+                  {adminSubTab === "governanca" && "Governança & Analytics"}
                 </h1>
                 <p className="text-lede" style={{ marginBottom: "24px" }}>
                   Governança centralizada de IA — auditoria, cotas, modelos, RAG e missões.
@@ -4464,6 +4465,11 @@ export default function Home() {
                   </div>
                 )}
 
+                {/* ─── Governança & Analytics Subtab ─── */}
+                {adminSubTab === "governanca" && (
+                  <GovernanceDashboard />
+                )}
+
               </div>
             )}
           </div>
@@ -4642,6 +4648,258 @@ export default function Home() {
         <CheckCircle size={15} style={{ color: "var(--verde)" }} />
         <span>{toastMessage}</span>
       </div>
+    </div>
+  );
+}
+
+/* ================== GOVERNANCE & ANALYTICS DASHBOARD ================== */
+function GovernanceDashboard() {
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const res = await fetch("/api/v1/admin/governance/stats", {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token") || ""}`
+          }
+        });
+        if (!res.ok) {
+          throw new Error("Erro ao carregar dados de governança.");
+        }
+        const data = await res.json();
+        setStats(data);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px", color: "var(--ink-soft)", gap: "12px" }}>
+        <Loader2 className="spin" size={32} />
+        <span style={{ fontSize: "14px", fontWeight: 600 }}>Carregando dados de governança e tokens...</span>
+      </div>
+    );
+  }
+
+  if (error || !stats) {
+    return (
+      <div className="card-premium" style={{ padding: "24px", color: "var(--error, #ba1a1a)", border: "1px solid var(--line)" }}>
+        <h4 style={{ fontSize: "15px", fontWeight: 700, marginBottom: "8px" }}>Erro na Consulta</h4>
+        <p style={{ fontSize: "13px", color: "var(--ink-soft)", margin: 0 }}>{error || "Dados indisponíveis."}</p>
+      </div>
+    );
+  }
+
+  // Calculate percentages for SVG circle chart segments
+  const openaiVal = stats.model_distribution.openai;
+  const anthropicVal = stats.model_distribution.anthropic;
+  const googleVal = stats.model_distribution.google;
+  
+  const openaiDash = openaiVal * 2.512;
+  const anthropicDash = anthropicVal * 2.512;
+  const googleDash = googleVal * 2.512;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "30px", animation: "fade-in 0.4s ease both" }}>
+      
+      {/* 1. KPIs Summary */}
+      <div>
+        <h3 className="text-section" style={{ fontSize: "16px", marginBottom: "16px", fontWeight: 600 }}>Resumo Executivo de Governança</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
+          
+          {/* KPI Card 1: Cost */}
+          <div className="card-premium" style={{ padding: "20px", display: "flex", flexDirection: "column", justifyContent: "space-between", border: "1px solid var(--bordo)", background: "#FFFFFF", borderRadius: "14px", borderStyle: "solid", borderWidth: "1px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <span className="text-label" style={{ fontSize: "11px", letterSpacing: "0.1em" }}>CUSTO TOTAL DE IA</span>
+              <DollarSign size={16} style={{ color: "var(--bordo)" }} />
+            </div>
+            <div>
+              <span style={{ fontSize: "28px", fontWeight: 400, color: "var(--ink)", fontFamily: "'Playfair Display', serif" }}>
+                ${stats.total_cost.toFixed(2)}
+              </span>
+              <span style={{ display: "block", fontSize: "11px", color: "var(--ink-faint)", marginTop: "4px" }}>
+                Gasto consolidado do escritório (USD)
+              </span>
+            </div>
+          </div>
+
+          {/* KPI Card 2: Requests */}
+          <div className="card-premium" style={{ padding: "20px", display: "flex", flexDirection: "column", justifyContent: "space-between", background: "#FFFFFF", borderRadius: "14px", border: "1px solid var(--line)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <span className="text-label" style={{ fontSize: "11px", letterSpacing: "0.1em" }}>CHAMADAS REALIZADAS</span>
+              <FileText size={16} style={{ color: "var(--bordo)" }} />
+            </div>
+            <div>
+              <span style={{ fontSize: "28px", fontWeight: 400, color: "var(--ink)", fontFamily: "'Playfair Display', serif" }}>
+                {stats.total_requests}
+              </span>
+              <span style={{ display: "block", fontSize: "11px", color: "var(--ink-faint)", marginTop: "4px" }}>
+                Total de requisições enviadas às LLMs
+              </span>
+            </div>
+          </div>
+
+          {/* KPI Card 3: Ethical Wall Blocks */}
+          <div className="card-premium" style={{ padding: "20px", display: "flex", flexDirection: "column", justifyContent: "space-between", background: "rgba(186, 26, 26, 0.02)", border: "1px solid rgba(186, 26, 26, 0.2)", borderRadius: "14px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <span className="text-label" style={{ fontSize: "11px", letterSpacing: "0.1em", color: "#ba1a1a" }}>BLOQUEIOS DE MURALHA ÉTICA</span>
+              <Shield size={16} style={{ color: "#ba1a1a" }} />
+            </div>
+            <div>
+              <span style={{ fontSize: "28px", fontWeight: 400, color: "#ba1a1a", fontFamily: "'Playfair Display', serif" }}>
+                {stats.ethical_wall_blocks}
+              </span>
+              <span style={{ display: "block", fontSize: "11px", color: "var(--ink-faint)", marginTop: "4px" }}>
+                Ações negadas por conflito de interesses
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* 2. Models & Logs (Grid) */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "24px" }}>
+        
+        {/* Model Usage circle visualization */}
+        <div className="card-premium" style={{ padding: "24px", display: "flex", flexDirection: "column", background: "#FFFFFF", borderRadius: "14px", border: "1px solid var(--line)" }}>
+          <h4 className="text-section" style={{ fontSize: "15px", marginBottom: "20px", fontWeight: 600 }}>Distribuição de Provedores</h4>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "16px 0", flex: 1 }}>
+            <div style={{ width: "150px", height: "150px", position: "relative", display: "flex", alignItems: "center", justifyItems: "center", justifyContent: "center" }}>
+              <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#F2EFE9" strokeWidth="10" />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="var(--bordo)" strokeWidth="10" strokeDasharray={`${anthropicDash} 251.2`} />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="var(--primary)" strokeWidth="10" strokeDasharray={`${openaiDash} 251.2`} strokeDashoffset={`-${anthropicDash}`} />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="var(--ink)" strokeWidth="10" strokeDasharray={`${googleDash} 251.2`} strokeDashoffset={`-${anthropicDash + openaiDash}`} />
+              </svg>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", zIndex: 1 }}>
+                <span style={{ fontSize: "24px", fontWeight: 700, color: "var(--ink)" }}>3</span>
+                <span style={{ fontSize: "9px", color: "var(--ink-faint)", textTransform: "uppercase" }}>PROVEDORES</span>
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12.5px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--bordo)" }}></span>
+                <span style={{ color: "var(--ink-soft)" }}>Anthropic (Claude)</span>
+              </div>
+              <span style={{ fontWeight: 600 }}>{anthropicVal}%</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12.5px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--primary)" }}></span>
+                <span style={{ color: "var(--ink-soft)" }}>OpenAI (GPT)</span>
+              </div>
+              <span style={{ fontWeight: 600 }}>{openaiVal}%</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12.5px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--ink)" }}></span>
+                <span style={{ color: "var(--ink-soft)" }}>Google (Gemini)</span>
+              </div>
+              <span style={{ fontWeight: 600 }}>{googleVal}%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Audit events list */}
+        <div className="card-premium" style={{ padding: "24px", display: "flex", flexDirection: "column", background: "#FFFFFF", borderRadius: "14px", border: "1px solid var(--line)", maxHeight: "350px" }}>
+          <h4 className="text-section" style={{ fontSize: "15px", marginBottom: "16px", fontWeight: 600 }}>Auditoria & Governança Recente</h4>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", overflowY: "auto", paddingRight: "4px", flex: 1 }}>
+            {stats.recent_events.map((ev: any, idx: number) => {
+              const isBlocked = ev.status === "Bloqueado" || ev.status.includes("Rejeitado");
+              const isWarn = ev.grounding_status === "Não Verificado";
+              return (
+                <div key={idx} style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "8px", background: "var(--paper-alt)", position: "relative", paddingLeft: "16px" }}>
+                  <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "4px", background: isBlocked ? "#ba1a1a" : isWarn ? "var(--warning)" : "var(--success)", borderRadius: "8px 0 0 8px" }}></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--ink-faint)", marginBottom: "4px" }}>
+                    <span style={{ fontWeight: 700, textTransform: "uppercase", color: isBlocked ? "#ba1a1a" : isWarn ? "var(--warning)" : "var(--success)" }}>
+                      {isBlocked ? "Bloqueio" : isWarn ? "Atenção" : "Sucesso"}
+                    </span>
+                    <span>{new Date(ev.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                  <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--ink)", marginBottom: "2px" }}>
+                    {ev.action === "analise_peticao" ? "Análise de Petição" : ev.action === "rascunho_recurso" ? "Rascunho de Recurso" : ev.action === "chat_livre" ? "Chat Livre" : ev.action}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "var(--ink-soft)" }}>
+                    Usuário: {ev.user_email} • {ev.model} • Cost: ${ev.cost_usd.toFixed(4)}
+                  </div>
+                </div>
+              );
+            })}
+            {stats.recent_events.length === 0 && (
+              <span style={{ fontSize: "12px", color: "var(--ink-faint)", textAlign: "center", padding: "20px" }}>Nenhum evento registrado.</span>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* 3. Usage by Process table */}
+      <div className="card-premium" style={{ padding: "24px", background: "#FFFFFF", borderRadius: "14px", border: "1px solid var(--line)" }}>
+        <h4 className="text-section" style={{ fontSize: "15px", marginBottom: "16px", fontWeight: 600 }}>Uso de Inteligência Artificial por Processo</h4>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
+            <thead>
+              <tr style={{ borderBottom: "1.5px solid var(--line)", background: "var(--paper-alt)" }}>
+                <th style={{ padding: "10px 12px", fontWeight: 600, color: "var(--ink-soft)" }}>Número do Processo</th>
+                <th style={{ padding: "10px 12px", fontWeight: 600, color: "var(--ink-soft)" }}>Cliente / Parte</th>
+                <th style={{ padding: "10px 12px", fontWeight: 600, color: "var(--ink-soft)", textAlign: "right" }}>Custo Acumulado</th>
+                <th style={{ padding: "10px 12px", fontWeight: 600, color: "var(--ink-soft)" }}>Ações Executadas</th>
+                <th style={{ padding: "10px 12px", fontWeight: 600, color: "var(--ink-soft)", textAlign: "center" }}>Status Conformidade</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.process_usage.map((p: any) => (
+                <tr key={p.process_id} style={{ borderBottom: "1px solid var(--line)" }}>
+                  <td style={{ padding: "12px", fontWeight: 600, color: "var(--primary)" }}>{p.number}</td>
+                  <td style={{ padding: "12px", color: "var(--ink)" }}>{p.client}</td>
+                  <td style={{ padding: "12px", color: "var(--ink)", textAlign: "right", fontWeight: 600 }}>${p.cumulative_cost.toFixed(2)}</td>
+                  <td style={{ padding: "12px" }}>
+                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                      {p.actions.map((act: string) => (
+                        <span key={act} style={{ padding: "2px 6px", borderRadius: "4px", fontSize: "10px", border: "1px solid var(--line)", background: "var(--paper-alt)", color: "var(--ink-soft)" }}>
+                          {act === "analise_peticao" ? "Petição" : act === "rascunho_recurso" ? "Recurso" : act === "chat_livre" ? "Chat" : act}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td style={{ padding: "12px", textAlign: "center" }}>
+                    <span style={{
+                      padding: "2px 10px",
+                      borderRadius: "20px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      background: p.status === "Conforme" ? "rgba(47, 107, 79, 0.08)" : "rgba(140, 97, 27, 0.08)",
+                      color: p.status === "Conforme" ? "var(--success)" : "var(--warning)",
+                      border: `1px solid ${p.status === "Conforme" ? "rgba(47, 107, 79, 0.2)" : "rgba(140, 97, 27, 0.2)"}`
+                    }}>
+                      {p.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {stats.process_usage.length === 0 && (
+                <tr>
+                  <td colSpan={5} style={{ padding: "20px", textAlign: "center", color: "var(--ink-faint)" }}>
+                    Nenhum caso com uso de IA registrado ainda.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   );
 }

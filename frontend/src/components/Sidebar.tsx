@@ -15,9 +15,10 @@ import {
   UserCog,
   Target,
   MessageSquare,
+  Shield,
 } from "lucide-react";
 
-type AdminSubTab = "logs" | "modelos" | "rag" | "custos" | "usuarios" | "missoes";
+type AdminSubTab = "logs" | "modelos" | "rag" | "custos" | "usuarios" | "missoes" | "governanca";
 
 interface SidebarProps {
   activeTab: "chat" | "missoes" | "auditoria";
@@ -37,6 +38,7 @@ const GOV_ITEMS: { key: AdminSubTab; label: string; icon: React.ReactNode; sóci
   { key: "modelos",  label: "Modelos & Prompts",   icon: <Cpu size={14} /> },
   { key: "rag",      label: "Base RAG (Leis)",      icon: <BookOpen size={14} /> },
   { key: "custos",   label: "Custos & Orçamento",  icon: <BarChart2 size={14} /> },
+  { key: "governanca", label: "Governança & Tokens", icon: <Shield size={14} /> },
   { key: "usuarios", label: "Usuários & Acesso",   icon: <UserCog size={14} />, sócioOnly: true },
   { key: "missoes",  label: "Missões",              icon: <Target size={14} />, sócioOnly: true },
 ];
