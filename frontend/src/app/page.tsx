@@ -4661,7 +4661,7 @@ function GovernanceDashboard() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const res = await fetch("/api/v1/admin/governance/stats", {
+        const res = await fetch(`${BACKEND_URL}/api/v1/admin/governance/stats`, {
           headers: {
             "Authorization": `Bearer ${localStorage.getItem("auth_email") || ""}`
           }
